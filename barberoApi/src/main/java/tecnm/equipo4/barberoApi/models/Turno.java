@@ -35,5 +35,12 @@ public class Turno {
     @Column(name = "sucursal")
     private String sucursal;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idServicio", nullable = false)
+    private Servicio servicio;
+
+    @OneToOne(mappedBy = "turno", cascade = CascadeType.ALL)
+    private Pago pago;
+
 
 }
