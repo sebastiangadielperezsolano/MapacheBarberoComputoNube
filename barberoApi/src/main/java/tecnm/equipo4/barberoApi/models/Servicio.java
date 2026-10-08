@@ -31,5 +31,8 @@ public class Servicio {
     @Column(name = "precio", precision = 10, scale = 2)
     private BigDecimal precio;
 
+    @OneToMany(mappedBy = "servicio", cascade = CascadeType.ALL)
+    private List<Turno> turnos = new ArrayList<>();
+
 
 }
