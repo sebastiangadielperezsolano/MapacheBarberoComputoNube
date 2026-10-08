@@ -32,5 +32,9 @@ public class Pago {
     @Column(name = "ultimosDigitos", length = 4)
     private String ultimosDigitos;
 
+    @OneToOne
+    @JoinColumn(name = "idTurno", nullable = false, unique = true)
+    private Turno turno;
+
 
 }
