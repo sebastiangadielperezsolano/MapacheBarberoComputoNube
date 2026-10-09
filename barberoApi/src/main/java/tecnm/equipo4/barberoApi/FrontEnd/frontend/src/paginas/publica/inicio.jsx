@@ -14,7 +14,7 @@ export default function Inicio() {
             <header className="relative z-10 p-6 flex items-center gap-3">
                 <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
                     <img
-                        src="/mapache-logo.svg"
+                        src="/racoon%201.png"
                         alt="El Mapache Bigotón"
                         className="w-full h-full object-contain"
                     />
