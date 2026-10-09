@@ -20,13 +20,13 @@ public class Cliente extends Usuario{
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
 
-    //relacion con barbero
+    //relacion con barbero 1 a muchos
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<Cliente> clientes = new ArrayList<>();
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<Turno> turnos = new ArrayList<>();
+    private List<Turno> turno = new ArrayList<>();
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
