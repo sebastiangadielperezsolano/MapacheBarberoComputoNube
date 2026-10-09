@@ -1,0 +1,221 @@
+/* Reutilizamos variables globales y estructura del dashboard anterior */
+.dashboard-container {
+  background-color: var(--bg-dark, #121212);
+  color: var(--text-light, #ffffff);
+  min-height: 100vh;
+  padding: 20px 20px 90px 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.header-info h2 {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.header-info p {
+  font-size: 0.85rem;
+  color: var(--text-gray, #a0a0a0);
+  line-height: 1.4;
+  max-width: 90%;
+}
+
+.client-avatar {
+  background-color: #242b27; /* Gris oscuro para el cliente en lugar del naranja del barbero */
+  color: var(--text-light);
+  border: 1px solid var(--text-gray);
+}
+
+.section-title {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+  letter-spacing: 1.5px;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+/* Tarjeta de Próximo Turno */
+.appointment-highlight-card {
+  background: linear-gradient(145deg, #2a1e16, #1a1614);
+  border: 1px solid var(--primary-orange, #d97d43);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.appointment-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--primary-orange, #d97d43);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary-orange, #d97d43);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--primary-orange, #d97d43);
+}
+
+.appointment-service {
+  font-size: 1.3rem;
+  margin-bottom: 5px;
+}
+
+.appointment-barber {
+  font-size: 0.9rem;
+  color: #cccccc;
+  margin-bottom: 15px;
+}
+
+.appointment-details-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-action {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--secondary-dark, #242b27);
+  color: var(--text-light);
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.btn-action.outline {
+  background-color: transparent;
+  border: 1px solid #444;
+  color: #aaa;
+}
+
+/* Sección Resumen */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.update-text {
+  font-size: 0.7rem;
+  color: var(--text-gray);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.summary-card {
+  background-color: var(--secondary-dark, #242b27);
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.summary-card.full-width {
+  grid-column: span 2;
+}
+
+.summary-card h4 {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+  margin-bottom: 8px;
+  font-weight: normal;
+}
+
+.summary-card .highlight {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.summary-card small {
+  display: block;
+  font-size: 0.75rem;
+  color: #7a7a7a;
+  margin-top: 5px;
+}
+
+/* Accesos Rápidos */
+.access-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.access-item {
+  display: flex;
+  align-items: center;
+  background-color: var(--secondary-dark, #242b27);
+  padding: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.access-icon {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  margin-right: 15px;
+}
+
+.access-info {
+  flex: 1;
+}
+
+.access-info h4 {
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+}
+
+.access-info p {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+}
+
+.arrow {
+  color: var(--text-gray);
+  font-size: 1.2rem;
+}
+
+/* La nav inferior ya está estilizada con el código del dashboard anterior, 
+   solo asegúrate de incluir esa clase si la tienes en un archivo global, 
+   o copia las reglas de .bottom-nav aquí */
