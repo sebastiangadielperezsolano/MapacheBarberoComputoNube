@@ -6,7 +6,6 @@ const WelcomeScreen = () => {
     <div className="welcome-container">
       <div className="welcome-content">
         <h2 className="brand-subtitle">EL MAPACHE BIGOTÓN</h2>
-        <h1 className="brand-title">BarberApp</h1>
         
         <div className="welcome-text">
           <h3>Bienvenido al<br/>Mapache Bigotón</h3>
