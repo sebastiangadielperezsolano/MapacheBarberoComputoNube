@@ -1,0 +1,138 @@
+.registration-container {
+  background-color: var(--bg-dark); /* Reutiliza la variable del primer archivo */
+  color: var(--text-light);
+  min-height: 100vh;
+  padding: 30px 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.registration-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.screen-title {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.screen-desc {
+  font-size: 0.85rem;
+  color: var(--text-gray);
+}
+
+.form-section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 0.8rem;
+  color: var(--text-gray);
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+.section-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-gray);
+  margin-bottom: 15px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dark-input {
+  background-color: var(--secondary-dark);
+  border: 1px solid transparent;
+  color: var(--text-light);
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.dark-input::placeholder {
+  color: #7a7a7a;
+}
+
+.dark-input:focus {
+  border-color: var(--primary-orange);
+}
+
+/* Selector de Días */
+.days-selector {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.day-btn {
+  background-color: var(--secondary-dark);
+  color: var(--text-gray);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.day-btn.active {
+  background-color: var(--primary-orange);
+  color: #000;
+}
+
+.time-inputs {
+  display: flex;
+  gap: 15px;
+}
+
+.time-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.time-field label {
+  font-size: 0.75rem;
+  color: var(--text-gray);
+}
+
+.time-input {
+  width: 100%;
+}
+
+/* Especialidades */
+.specialties-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.specialty-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--secondary-dark);
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.custom-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary-orange);
+  cursor: pointer;
+}
+
+.submit-btn {
+  margin-top: 10px;
+}

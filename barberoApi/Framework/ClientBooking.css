@@ -1,0 +1,185 @@
+.booking-container {
+  background-color: var(--bg-dark, #121212);
+  color: var(--text-light, #ffffff);
+  min-height: 100vh;
+  padding: 30px 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.booking-header {
+  margin-bottom: 25px;
+}
+
+.screen-title {
+  font-size: 0.8rem;
+  color: var(--text-gray, #a0a0a0);
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+.main-title {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.screen-desc {
+  font-size: 0.85rem;
+  color: var(--text-gray, #a0a0a0);
+  line-height: 1.4;
+}
+
+/* Reutilizamos estilos de inputs oscuros */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dark-input {
+  background-color: var(--secondary-dark, #242b27);
+  border: 1px solid transparent;
+  color: var(--text-light);
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.dark-input:focus {
+  border-color: var(--primary-orange, #d97d43);
+}
+
+.textarea-input {
+  resize: none;
+  margin-top: 10px;
+}
+
+/* Grid de Servicios */
+.services-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.service-card {
+  background-color: var(--secondary-dark, #242b27);
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.service-card.active {
+  border-color: var(--primary-orange, #d97d43);
+  background-color: rgba(217, 125, 67, 0.1);
+}
+
+.service-info h4 {
+  font-size: 0.85rem;
+  margin-bottom: 3px;
+}
+
+.service-info small {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+}
+
+.service-price {
+  font-weight: bold;
+  color: var(--primary-orange, #d97d43);
+}
+
+/* Fechas */
+.dates-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 25px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.date-card {
+  background-color: var(--secondary-dark, #242b27);
+  min-width: 70px;
+  padding: 15px 10px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.date-card.active {
+  border-color: var(--primary-orange, #d97d43);
+  background-color: rgba(217, 125, 67, 0.1);
+}
+
+.date-day {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+}
+
+.date-number {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.date-month {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+}
+
+/* Horas */
+.time-period {
+  font-size: 0.8rem;
+  color: var(--text-gray, #a0a0a0);
+  margin: 15px 0 10px 0;
+  letter-spacing: 1px;
+}
+
+.times-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.time-btn {
+  background-color: var(--secondary-dark, #242b27);
+  color: var(--text-light);
+  border: 1px solid transparent;
+  padding: 12px 0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.time-btn.active {
+  background-color: var(--primary-orange, #d97d43);
+  color: #000;
+  border-color: var(--primary-orange, #d97d43);
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  background-color: var(--primary-orange, #d97d43);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 1rem;
+  margin-top: 20px;
+  cursor: pointer;
+}
