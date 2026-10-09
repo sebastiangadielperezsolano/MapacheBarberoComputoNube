@@ -2,6 +2,11 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Inicio from './paginas/publica/inicio';
 import InicioSesion from './paginas/publica/inicioSesion';
 import Registro from './paginas/publica/registro';
+import InicioCliente from './paginas/cliente/inicioCliente';
+import RegistroC from './paginas/cliente/registroCita';
+import inicioBarbero from './paginas/barbero/inicioBarbero';
+import RegistroB from './paginas/barbero/registroBarbero';
+
 
 function App() {
     return (
@@ -12,6 +17,14 @@ function App() {
                 <Route path="/login" element={<InicioSesion />} />
 
                 <Route path="/registro" element={<Registro />} />
+
+                <Route path="/cliente" element={<InicioCliente />} />
+
+                <Route path="/agendar" element={<RegistroC />} />
+
+                <Route path="/barbero" element={<inicioBarbero />} />
+
+                <Route path="/empleado" element={<RegistroB />} />
             </Routes>
         </BrowserRouter>
     )

@@ -1,16 +1,36 @@
 @import "tailwindcss";
 
-:root {
-  --mapache-bg: #111713;
-  --mapache-card: #1A251D;
-  --mapache-border: #2D3E31;
-  --mapache-orange: #E08A3E;
-  --mapache-orange-hover: #c9762e;
+@layer base {
+  :root {
+    --mapache-bg: #111713;
+    --mapache-card: #1A251D;
+    --mapache-border: #2D3E31;
+    --mapache-orange: #E08A3E;
+    --mapache-orange-hover: #c9762e;
+  }
+
+  body {
+    background-color: var(--mapache-bg);
+    color: #ffffff;
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+  }
 }
 
-body {
-  background-color: var(--mapache-bg);
-  color: #ffffff;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  margin: 0;
+.mapache-card {
+  background-color: #1A251D;
+  border: 1px solid #2D3E31;
+  border-radius: 1rem;
+}
+
+.mapache-btn-primary {
+  background-color: #E08A3E;
+  color: #111713;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+}
+
+.mapache-btn-primary:hover {
+  background-color: #c9762e;
 }

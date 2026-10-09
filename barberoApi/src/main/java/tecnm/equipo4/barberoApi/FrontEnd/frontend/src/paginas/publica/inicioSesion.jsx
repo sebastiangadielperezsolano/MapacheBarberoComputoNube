@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function InicioSesion() {
     const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ export default function InicioSesion() {
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log('Datos de inicio de sesión:', formData);
+        navigate('/cliente');
     };
 
     return (
