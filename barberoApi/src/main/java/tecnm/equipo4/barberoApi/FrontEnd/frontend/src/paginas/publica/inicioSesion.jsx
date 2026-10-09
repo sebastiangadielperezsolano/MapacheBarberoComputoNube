@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { LogIn, Mail, Lock, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export default function InicioSesion() {
     const [formData, setFormData] = useState({
@@ -18,7 +17,6 @@ export default function InicioSesion() {
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log('Datos de inicio de sesión:', formData);
-        navigate('/cliente');
     };
 
     return (
@@ -31,7 +29,7 @@ export default function InicioSesion() {
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
                         <img
-                            src="/racoon_1.png"
+                            src="/mapache-logo.svg"
                             alt="El Mapache Bigotón"
                             className="w-full h-full object-contain"
                         />
