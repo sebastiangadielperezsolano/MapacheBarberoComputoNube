@@ -26,21 +26,16 @@
 
 .brand-subtitle {
   font-size: 0.8rem;
-  letter-spacing: 2px;
-  color: var(--text-gray);
+  letter-spacing: 1px;
+  color: var(--primary-orange);
   margin-bottom: 5px;
 }
 
-.brand-title {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 40px;
-}
-
 .welcome-text h3 {
-  font-size: 1.8rem;
+  font-size: 2.50rem;
   line-height: 1.2;
   margin-bottom: 10px;
+  font-family: 'Inter', Bold, sans-serif;
 }
 
 .welcome-text p {

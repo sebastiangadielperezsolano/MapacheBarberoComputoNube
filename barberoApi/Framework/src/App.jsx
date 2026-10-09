@@ -1,5 +1,5 @@
 import React from 'react';
-import WelcomeScreen from './BarberDashboard'; // Importamos la primera vista
+import WelcomeScreen from './ClientDashboard'; // Importamos la primera vista
 
 function App() {
   return (
