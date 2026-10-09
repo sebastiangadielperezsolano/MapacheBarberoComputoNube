@@ -1,0 +1,80 @@
+:root {
+  --bg-dark: #121212;
+  --primary-orange: #d97d43;
+  --secondary-dark: #242b27;
+  --text-light: #ffffff;
+  --text-gray: #a0a0a0;
+}
+
+.welcome-container {
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Inter', sans-serif; 
+  padding: 20px;
+}
+
+.welcome-content {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.brand-subtitle {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  color: var(--primary-orange);
+  margin-bottom: 5px;
+}
+
+.welcome-text h3 {
+  font-size: 2.50rem;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  font-family: 'Inter', Bold, sans-serif;
+}
+
+.welcome-text p {
+  color: var(--text-gray);
+  margin-bottom: 50px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.btn-primary, .btn-secondary {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: var(--primary-orange);
+  color: #000;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-dark);
+  color: var(--text-light);
+}
+
+.terms-text {
+  font-size: 0.75rem;
+  color: var(--text-gray);
+}

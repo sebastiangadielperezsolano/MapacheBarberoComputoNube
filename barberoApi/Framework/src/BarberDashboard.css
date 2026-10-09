@@ -1,0 +1,198 @@
+.dashboard-container {
+  background-color: var(--bg-dark, #121212);
+  color: var(--text-light, #ffffff);
+  min-height: 100vh;
+  padding: 20px 20px 80px 20px; /* Padding inferior para que la nav no tape contenido */
+  font-family: 'Inter', sans-serif;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.header-info h2 {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.header-info p {
+  font-size: 0.85rem;
+  color: var(--text-gray, #a0a0a0);
+  line-height: 1.4;
+  max-width: 90%;
+}
+
+.profile-avatar {
+  width: 45px;
+  height: 45px;
+  background-color: var(--primary-orange, #d97d43);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* Grid de Métricas */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.metric-card {
+  background-color: var(--secondary-dark, #242b27);
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.metric-card.full-width {
+  grid-column: span 2;
+}
+
+.metric-info h4 {
+  font-size: 0.75rem;
+  color: var(--text-gray, #a0a0a0);
+  margin-bottom: 5px;
+  font-weight: normal;
+}
+
+.highlight {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.metric-info small {
+  font-size: 0.7rem;
+  color: #7a7a7a;
+}
+
+/* Agenda */
+.agenda-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.agenda-header h3 {
+  font-size: 1.1rem;
+}
+
+.agenda-header p {
+  font-size: 0.8rem;
+  color: var(--text-gray, #a0a0a0);
+}
+
+.agenda-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--primary-orange, #d97d43);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-primary-small {
+  background-color: var(--primary-orange, #d97d43);
+  color: #000;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Citas */
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appointment-card {
+  display: flex;
+  align-items: center;
+  background-color: var(--secondary-dark, #242b27);
+  padding: 15px;
+  border-radius: 12px;
+  gap: 15px;
+}
+
+.appointment-time {
+  font-weight: bold;
+  font-size: 0.95rem;
+  min-width: 45px;
+}
+
+.appointment-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #3a3f3c;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.appointment-details h4 {
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+}
+
+.appointment-details p {
+  font-size: 0.8rem;
+  color: var(--text-gray, #a0a0a0);
+}
+
+/* Nav Inferior */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #1a1f1c;
+  display: flex;
+  justify-content: space-around;
+  padding: 15px 0;
+  border-top: 1px solid #2d3330;
+}
+
+.nav-item {
+  background: none;
+  border: none;
+  color: #7a7a7a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  color: var(--primary-orange, #d97d43);
+}
+
+.nav-icon {
+  font-size: 1.2rem;
+}
