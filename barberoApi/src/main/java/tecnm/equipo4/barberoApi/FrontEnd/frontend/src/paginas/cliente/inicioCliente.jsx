@@ -29,7 +29,7 @@ export default function ClienteDashboard() {
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
                         <img
-                            src="/mapache-logo.svg"
+                            src="/racoon_1.png"
                             alt="El Mapache Bigotón"
                             className="w-full h-full object-contain"
                         />

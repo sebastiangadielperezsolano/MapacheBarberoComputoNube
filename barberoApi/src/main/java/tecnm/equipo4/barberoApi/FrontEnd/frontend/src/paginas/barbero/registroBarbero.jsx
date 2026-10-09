@@ -42,7 +42,7 @@ export default function RegistroBarbero() {
                         <ArrowLeft size={18} />
                     </button>
                     <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
-                        <img src="/racoon.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
+                        <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
                     </div>
                     <div>
             <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">

@@ -21,7 +21,7 @@ export default function BarberoDashboard() {
     return (
         <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">
 
-             <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
+            <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
             <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
