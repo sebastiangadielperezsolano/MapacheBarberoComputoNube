@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 
+@PrimaryKeyJoinColumn(name = "idUsuario")
 @Table (name = "barbero")
 public class Barbero {
     @Id
