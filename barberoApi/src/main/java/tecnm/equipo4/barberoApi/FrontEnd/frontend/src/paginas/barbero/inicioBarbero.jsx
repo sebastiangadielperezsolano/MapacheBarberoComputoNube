@@ -12,6 +12,7 @@ import {
     FileText,
     Phone,
     Check
+    //puto el wicho
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
