@@ -15,8 +15,12 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function BarberoDashboard() {
+export default function inicioBarbero() {
     const navigate = useNavigate();
+
+    const handleLogout = () => {
+        navigate('/barbero');
+    };
 
     return (
         <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">
