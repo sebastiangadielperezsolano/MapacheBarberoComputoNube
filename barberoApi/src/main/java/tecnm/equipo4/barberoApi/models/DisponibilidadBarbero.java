@@ -2,6 +2,9 @@ package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,14 +22,20 @@ public class DisponibilidadBarbero {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDisponibilidad;
 
-    @Column(nullable = false)
+    @NotNull
+    @Column(name = "dia")
+    @FutureOrPresent
     private DateFormat dia;
 
-    @Column(nullable = false)
-    private String diaEntrada;
+    @NotNull
+    @Column(name = "diaEntrada")
+    @FutureOrPresent
+    private DateFormat diaEntrada;
 
-    @Column(nullable = false)
-    private String diaSalida;
+    @NotNull
+    @Column(name = "diaSalida")
+    @Future
+    private DateFormat diaSalida;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "idUsuario")

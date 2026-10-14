@@ -2,10 +2,7 @@ package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,9 +27,9 @@ public class Cliente {
     private String nombreCompleto;
 
     @NotNull
-    @NotEmpty
-    @Size(min = 1, max = 10)
+    @Size(min = 10, max = 12)
     @Column(name = "telefono")
+    @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
     private String telefono;
 
     @NotNull
@@ -40,9 +37,10 @@ public class Cliente {
     @Column(name = "email")
     private String email;
 
-    @NotNull
-    @NotEmpty
+    @NotBlank
     @Column(name = "password")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$",
+            message = "La contraseña debe tener: al menos una mayúscula, una minúscula, un número y un carácter especial")
     private String password;
 
     @NotNull

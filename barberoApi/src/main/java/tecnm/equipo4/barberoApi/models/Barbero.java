@@ -26,9 +26,9 @@ public class Barbero {
     private String nombreCompleto;
 
     @NotNull
-    @NotEmpty
-    @Size(min = 1, max = 10)
+    @Size(min = 10, max = 12)
     @Column(name = "telefono")
+    @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
     private String telefono;
 
     @NotNull
@@ -48,9 +48,11 @@ public class Barbero {
 
     @NotNull
     @Column(name = "Experiencia")
+    @Min(value = 1)
     private int experiencia;
 
     @NotNull
+    @NotEmpty
     @Column(name = "tituloRol")
     private String tituloRol;
 
