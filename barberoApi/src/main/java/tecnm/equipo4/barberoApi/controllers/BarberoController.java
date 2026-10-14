@@ -24,7 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @RequestMapping("/barbero")
 public class BarberoController {
-    private BarberoRepository barberoRepository;
+    private final BarberoRepository barberoRepository;
 
     @GetMapping()
     public ResponseEntity<Iterable<Barbero>> findAll() {
@@ -44,5 +44,25 @@ public class BarberoController {
                 .buildAndExpand(savedBarbero.getIdBarbero())
                 .toUri();
         return ResponseEntity.created(uri).body(savedBarbero);
+    }
+
+    @PutMapping("/{idBarbero}")
+    public ResponseEntity<Void> update(@PathVariable Long idBarbero, @RequestBody Barbero putBarbero) {
+        Optional<Barbero> barberoAnt = barberoRepository.findById(idBarbero);
+        if (!barberoAnt.isPresent()) {
+            putBarbero.setIdBarbero(idBarbero);
+            barberoRepository.save(putBarbero);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{idBarbero}")
+    public ResponseEntity<Void> delete(@PathVariable Long idBarbero) {
+        if (barberoRepository.findById(idBarbero).isPresent()) {
+            barberoRepository.deleteById(idBarbero);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }
