@@ -1,5 +1,6 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,5 +33,8 @@ public class Pago {
     @Column(name = "ultimosDigitos", length = 4)
     private String ultimosDigitos;
 
-
+    @OneToOne
+    @JoinColumn(name = "idTurno")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Turno turno;
 }

@@ -35,5 +35,6 @@ public class Turno {
     @Column(name = "sucursal")
     private String sucursal;
 
-
+    @OneToOne(mappedBy = "turno", cascade = CascadeType.ALL)
+    private Pago pago;
 }

@@ -1,6 +1,7 @@
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,18 +14,57 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 
-@PrimaryKeyJoinColumn(name = "idUsuario")
 @Table (name = "barbero")
-public class Barbero extends Usuario{
-    @Column(nullable = false)
+public class Barbero {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idBarbero;
+
+    @NotNull
+    @NotEmpty
+    @Column(name = "nombreCompleto")
+    private String nombreCompleto;
+
+    @NotNull
+    @NotEmpty
+    @Size(min = 1, max = 10)
+    @Column(name = "telefono")
+    private String telefono;
+
+    @NotNull
+    @Email
+    @Column(name = "email")
+    private String email;
+
+    @NotBlank
+    @Column(name = "password")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$",
+            message = "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial")
+    private String password;
+
+    @NotNull
+    @Column(name = "tipoUsuario")
+    private String tipoUsuario;
+
+    @NotNull
+    @Column(name = "Experiencia")
     private int experiencia;
 
-    @Column(nullable = false)
+    @NotNull
+    @Column(name = "tituloRol")
     private String tituloRol;
+
+    @Lob
+    @Column(name = "foto", columnDefinition = "LONGBLOB")
+    private byte[] foto;
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
+
+    //Relacion 1:N con Cliente
+    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    private List<Cliente> clientes = new ArrayList<>();
 }
