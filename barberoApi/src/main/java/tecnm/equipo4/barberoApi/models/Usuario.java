@@ -1,3 +1,4 @@
+
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
@@ -30,4 +31,7 @@ public class Usuario {
 
     @Column(nullable = false)
     private String tipoUsuario;
+    @Lob
+    @Column(nullable = false, columnDefinition = "LONGBLOB")
+    private byte[] perfil;
 }
