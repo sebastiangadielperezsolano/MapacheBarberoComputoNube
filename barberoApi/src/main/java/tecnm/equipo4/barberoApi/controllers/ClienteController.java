@@ -8,6 +8,7 @@ import tecnm.equipo4.barberoApi.models.Cliente;
 import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 
 import java.net.URI;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
