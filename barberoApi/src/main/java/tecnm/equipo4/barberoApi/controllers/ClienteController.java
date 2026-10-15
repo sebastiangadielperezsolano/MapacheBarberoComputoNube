@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import tecnm.equipo4.barberoApi.models.Cliente;
+import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 
 import java.net.URI;
 import java.util.Optional;
@@ -22,29 +23,29 @@ public class ClienteController {
     }
 
     //Consulta cliente por su identificador
-    @GetMapping("/{idUsuario}")
-    public ResponseEntity<Cliente> findById(@PathVariable Long idUsuario) {
-        Optional<Cliente> clienteOptional = clienteRepository.findById(idUsuario);
+    @GetMapping("/{idCliente}")
+    public ResponseEntity<Cliente> findById(@PathVariable Long idCliente) {
+        Optional<Cliente> clienteOptional = clienteRepository.findById(idCliente);
         return clienteOptional.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     //Crear un cliente
-    @PostMapping("/{idUsuario}")
+    @PostMapping("/{idCliente}")
     public ResponseEntity<?> create(@RequestBody Cliente newCliente, UriComponentsBuilder ucb) {
         Cliente savedCliente = clienteRepository.save(newCliente);
         URI uri = ucb.path("cliente/{idUsuario}")
-                .buildAndExpand(savedCliente.getIdUsuario())
+                .buildAndExpand(savedCliente.getIdCliente())
                 .toUri();
 
         return ResponseEntity.created(uri).build();
     }
 
     //Actualizar un cliente
-    @PutMapping("/{idUsuario}")
-    public ResponseEntity<?> update(@PathVariable Long idUsuario, @RequestBody Cliente putCliente) {
-        Optional<Cliente> clienteAnt = clienteRepository.findById(idUsuario);
+    @PutMapping("/{idCliente}")
+    public ResponseEntity<?> update(@PathVariable Long idCliente, @RequestBody Cliente putCliente) {
+        Optional<Cliente> clienteAnt = clienteRepository.findById(idCliente);
         if (clienteAnt.isPresent()) {
-            putCliente.setIdUsuario(idUsuario);
+            putCliente.setIdCliente(idCliente);
             clienteRepository.save(putCliente);
             return ResponseEntity.noContent().build();
         }
@@ -52,10 +53,10 @@ public class ClienteController {
     }
 
     //Eliminar un cliente
-    @DeleteMapping("/{idUsuario}")
-    public ResponseEntity<?> delete(@PathVariable Long idUsuario) {
-        if (clienteRepository.findById(idUsuario).isPresent()) {
-            clienteRepository.deleteById(idUsuario);
+    @DeleteMapping("/{idCliente}")
+    public ResponseEntity<?> delete(@PathVariable Long idCliente) {
+        if (clienteRepository.findById(idCliente).isPresent()) {
+            clienteRepository.deleteById(idCliente);
             return ResponseEntity.ok().build();
         }
 
