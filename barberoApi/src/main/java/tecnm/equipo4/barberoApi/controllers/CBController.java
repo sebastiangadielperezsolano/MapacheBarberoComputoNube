@@ -53,4 +53,32 @@ public class CBController {
         URI uri = ucb.path("clienteBarbero/{idCB}").buildAndExpand(created.getIdCB()).toUri();
         return ResponseEntity.created(uri).build();
     }
+
+    @PutMapping("/{idCB}")
+    public ResponseEntity<Void> update(@PathVariable Long idCB, @RequestBody ClienteBarbero cb) {
+        Optional<Cliente> clienteOptional = clienteRepository.findById(cb.getCliente().getIdCliente());
+        Optional<Barbero> barberoOptional = barberoRepository.findById(cb.getBarbero().getIdBarbero());
+
+        if (!clienteOptional.isPresent() || !barberoOptional.isPresent()) {
+            return ResponseEntity.unprocessableEntity().build();
+        }
+        ClienteBarbero cbAnterior = cbRepository.findById(idCB).get();
+        if (cbAnterior != null) {
+            cb.setCliente(clienteOptional.get());
+            cb.setBarbero(barberoOptional.get());
+            cbRepository.save(cb);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{idCB}")
+    public ResponseEntity<Void> delete(@PathVariable Long idCB) {
+        if (cbRepository.findById(idCB).isPresent()) {
+            cbRepository.deleteById(idCB);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
 }
