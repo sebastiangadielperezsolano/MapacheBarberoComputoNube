@@ -1,38 +1,105 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     UserPlus,
     Plus,
     Calendar,
-    Users,
-    User,
     Search,
     Bell,
     DollarSign,
     Settings,
-    FileText,
-    Phone,
-    Check
-    //puto el wicho
+    CalendarX2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = 'http://localhost:8080';
 
 export default function BarberoDashboard() {
     const navigate = useNavigate();
 
+    // Estados vinculados a las entidades de la base de datos
+    const [barberos, setBarberos] = useState([]);
+    const [turnos, setTurnos] = useState([]);
+    const [disponibilidades, setDisponibilidades] = useState([]);
+    const [pagos, setPagos] = useState([]);
+    const [clientes, setClientes] = useState([]);
+    const [servicios, setServicios] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+
+    // Conexión con los endpoints expuestos en los controladores
+    useEffect(() => {
+        const cargarDatosDashboard = async () => {
+            setLoading(true);
+            try {
+                // Peticiones paralelas a los controladores del backend
+                const [
+                    resBarberos,
+                    resTurnos,
+                    resDispo,
+                    resPagos,
+                    resClientes,
+                    resServicios
+                ] = await Promise.allSettled([
+                    fetch(`${API_BASE_URL}/barbero`),             // BarberoController
+                    fetch(`${API_BASE_URL}/api/turnos`),          // TurnoController
+                    fetch(`${API_BASE_URL}/diponibilidad`),       // DisponibilidadController
+                    fetch(`${API_BASE_URL}/api/pagos`),           // PagoController
+                    fetch(`${API_BASE_URL}/cliente`),             // ClienteController
+                    fetch(`${API_BASE_URL}/api/servicios`)        // ServicioController
+                ]);
+
+                if (resBarberos.status === 'fulfilled' && resBarberos.value.ok) {
+                    setBarberos(await resBarberos.value.json());
+                }
+                if (resTurnos.status === 'fulfilled' && resTurnos.value.ok) {
+                    setTurnos(await resTurnos.value.json());
+                }
+                if (resDispo.status === 'fulfilled' && resDispo.value.ok) {
+                    setDisponibilidades(await resDispo.value.json());
+                }
+                if (resPagos.status === 'fulfilled' && resPagos.value.ok) {
+                    setPagos(await resPagos.value.json());
+                }
+                if (resClientes.status === 'fulfilled' && resClientes.value.ok) {
+                    setClientes(await resClientes.value.json());
+                }
+                if (resServicios.status === 'fulfilled' && resServicios.value.ok) {
+                    setServicios(await resServicios.value.json());
+                }
+            } catch (error) {
+                console.log('Backend sin conexión activa, mostrando estructura limpia.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        cargarDatosDashboard();
+    }, []);
+
+    // Cálculos dinámicos basados en la base de datos
+    const turnosCompletados = turnos.filter(t => t.estado === 'COMPLETADO' || t.estado === 'FINALIZADO').length;
+    const turnosPendientes = turnos.filter(t => t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO').length;
+
+    // Suma de ingresos calculada a partir de PagoController (/api/pagos)
+    const ingresosDelDia = pagos.reduce((acc, p) => acc + (p.monto || 0), 0);
+    const pagosPendientes = pagos.filter(p => p.estado === 'PENDIENTE').length;
+
     return (
         <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">
 
+            {/* Círculo decorativo de fondo */}
             <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
+            {/* ENCABEZADO */}
             <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
                         <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
                     </div>
                     <div>
-            <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
-              El Mapache Bigotón
-            </span>
+                        <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
+                            El Mapache Bigotón
+                        </span>
                         <h1 className="text-xl font-bold tracking-tight text-white leading-none">
                             BarberApp
                         </h1>
@@ -40,6 +107,7 @@ export default function BarberoDashboard() {
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap">
+                    {/* Buscador */}
                     <div className="relative flex items-center">
                         <Search className="absolute left-3 text-gray-400" size={16} />
                         <input
@@ -49,6 +117,7 @@ export default function BarberoDashboard() {
                         />
                     </div>
 
+                    {/* Botón Nuevo Barbero */}
                     <button
                         onClick={() => navigate('/registro-barbero')}
                         className="py-2 px-4 bg-[#1A251D] hover:bg-[#25352a] text-gray-200 border border-[#2D3E31] font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer text-xs"
@@ -57,44 +126,54 @@ export default function BarberoDashboard() {
                         <span>+ Nuevo barbero</span>
                     </button>
 
+                    {/* PERFIL */}
                     <div className="flex items-center gap-2 bg-[#1A251D] border border-[#2D3E31] p-1.5 px-3 rounded-xl">
                         <div className="w-7 h-7 rounded-full bg-[#E08A3E] text-[#111713] font-bold text-xs flex items-center justify-center">
-                            B
+                            V
                         </div>
                         <div className="text-left">
-                            <span className="block text-xs font-bold leading-none">Bruno</span>
-                            <span className="text-[10px] text-gray-400">Barbero principal</span>
+                            <span className="block text-xs font-bold leading-none">
+                                Vieja confiable
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                                Barbero principal
+                            </span>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div className="relative z-10 flex items-center justify-between mb-6 border-b border-[#2D3E31] pb-3">
+            {/* PESTAÑAS DE NAVEGACIÓN */}
+            <div className="relative z-10 flex items-center justify-between mb-6 border-b border-[#2D3E31] pb-3 flex-wrap gap-3">
                 <div className="flex gap-2">
-                    <button className="py-1.5 px-4 bg-[#1A251D] border border-[#2D3E31] text-[#E08A3E] text-xs font-bold rounded-lg">
+                    <button className="py-1.5 px-4 bg-[#1A251D] border border-[#2D3E31] text-[#E08A3E] text-xs font-bold rounded-lg cursor-pointer">
                         Inicio
                     </button>
-                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg">
+                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer">
                         Agenda
                     </button>
-                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg">
-                        Clientes
+                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer">
+                        Clientes ({clientes.length})
                     </button>
-                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg">
+                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer">
                         Perfil
                     </button>
                 </div>
 
                 <div className="flex items-center gap-2">
-          <span className="text-xs bg-[#1A251D] border border-[#2D3E31] px-3 py-1 rounded-full text-gray-300">
-            Hoy · 09:00 - 19:00
-          </span>
+                    {/* Horarios dinámicos configurables desde DisponibilidadController */}
+                    <span className="text-xs bg-[#1A251D] border border-[#2D3E31] px-3 py-1 rounded-full text-gray-300">
+                        {disponibilidades.length > 0
+                            ? `Hoy · ${disponibilidades[0].horaInicio || '09:00'} - ${disponibilidades[0].horaFin || '19:00'}`
+                            : 'Hoy · 09:00 - 19:00'}
+                    </span>
                     <span className="text-xs bg-[#E08A3E]/20 text-[#E08A3E] border border-[#E08A3E]/30 px-3 py-1 rounded-full font-bold">
-            2 turnos próximos
-          </span>
+                        {turnosPendientes} turnos próximos
+                    </span>
                 </div>
             </div>
 
+            {/* SALUDO DE BIENVENIDA */}
             <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight mb-1">
@@ -106,7 +185,7 @@ export default function BarberoDashboard() {
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <button className="py-2.5 px-4 bg-[#1A251D] hover:bg-[#25352a] text-gray-200 border border-[#2D3E31] font-semibold rounded-xl flex items-center gap-2 text-xs transition-all">
+                    <button className="py-2.5 px-4 bg-[#1A251D] hover:bg-[#25352a] text-gray-200 border border-[#2D3E31] font-semibold rounded-xl flex items-center gap-2 text-xs transition-all cursor-pointer">
                         <Calendar size={16} />
                         <span>Ver agenda</span>
                     </button>
@@ -121,94 +200,122 @@ export default function BarberoDashboard() {
                 </div>
             </div>
 
+            {/* MÉTRICAS Y AGENDA */}
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
+                {/* Columna Principal */}
                 <div className="lg:col-span-8 flex flex-col gap-6">
 
+                    {/* Tarjetas de Métricas Vinculadas */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="bg-[#1A251D] border border-[#2D3E31] p-4 rounded-2xl">
                             <span className="text-[10px] text-gray-400 block mb-1">Turnos completados</span>
-                            <span className="text-2xl font-black">8</span>
-                            <span className="text-[10px] text-gray-500 block mt-1">2 pendientes por confirmar</span>
+                            <span className="text-2xl font-black">{turnosCompletados}</span>
+                            <span className="text-[10px] text-gray-500 block mt-1">{turnosPendientes} pendientes</span>
                         </div>
 
                         <div className="bg-[#1A251D] border border-[#2D3E31] p-4 rounded-2xl">
                             <span className="text-[10px] text-gray-400 block mb-1">Ingreso del día</span>
-                            <span className="text-2xl font-black text-[#E08A3E]">$184</span>
-                            <span className="text-[10px] text-gray-500 block mt-1">3 pagos pendientes</span>
+                            <span className="text-2xl font-black text-[#E08A3E]">${ingresosDelDia}</span>
+                            <span className="text-[10px] text-gray-500 block mt-1">{pagosPendientes} pagos pendientes</span>
                         </div>
 
                         <div className="bg-[#1A251D] border border-[#2D3E31] p-4 rounded-2xl">
                             <span className="text-[10px] text-gray-400 block mb-1">Clientes hoy</span>
-                            <span className="text-2xl font-black">12</span>
-                            <span className="text-[10px] text-gray-500 block mt-1">4 nuevos registros</span>
+                            <span className="text-2xl font-black">{clientes.length}</span>
+                            <span className="text-[10px] text-gray-500 block mt-1">Registrados en sistema</span>
                         </div>
 
                         <div className="bg-[#1A251D] border border-[#2D3E31] p-4 rounded-2xl">
                             <span className="text-[10px] text-gray-400 block mb-1">Ocupación</span>
-                            <span className="text-2xl font-black">82%</span>
-                            <span className="text-[10px] text-gray-500 block mt-1">2 franjas disponibles</span>
+                            <span className="text-2xl font-black">
+                                {disponibilidades.length > 0 ? `${Math.min(100, turnos.length * 20)}%` : '0%'}
+                            </span>
+                            <span className="text-[10px] text-gray-500 block mt-1">
+                                {disponibilidades.length > 0 ? 'Franjas según disponibilidad' : 'Disponible'}
+                            </span>
                         </div>
                     </div>
 
+                    {/* Agenda Diaria */}
                     <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-6">
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h3 className="font-bold text-lg">Agenda diaria</h3>
-                                <span className="text-xs text-gray-400">12 clientes programados - 2 turnos próximos</span>
+                                <span className="text-xs text-gray-400">
+                                    {turnos.length} clientes programados
+                                </span>
                             </div>
                             <span className="text-xs bg-[#111713] border border-[#2D3E31] px-3 py-1 rounded-full text-gray-400">
-                Hoy · 09:00 - 19:00
-              </span>
+                                Hoy · {disponibilidades[0]?.horaInicio || '09:00'} - {disponibilidades[0]?.horaFin || '19:00'}
+                            </span>
                         </div>
 
-                        <div className="flex flex-col gap-3">
-                            {[
-                                { hora: '09:00', cliente: 'Lucas Cruz', servicio: 'Corte clásico - 45 min', iniciales: 'LC' },
-                                { hora: '09:45', cliente: 'Mateo Ruiz', servicio: 'Afeitado + corte - 60 min', iniciales: 'MR' },
-                                { hora: '10:45', cliente: 'Sofía Gómez', servicio: 'Peinado + barba - 75 min', iniciales: 'SG' },
-                                { hora: '11:30', cliente: 'Andrés Pérez', servicio: 'Corte + lavado - 50 min', iniciales: 'AP' },
-                            ].map((c, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 bg-[#111713] border border-[#2D3E31] rounded-xl">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-xs font-bold text-gray-400 w-12">{c.hora}</span>
-                                        <div className="w-8 h-8 bg-[#1A251D] border border-[#2D3E31] rounded-lg flex items-center justify-center text-xs font-bold text-[#E08A3E]">
-                                            {c.iniciales}
+                        {/* Renderizado condicional: Cero turnos vs Lista de la BD */}
+                        {turnos.length === 0 ? (
+                            <div className="bg-[#111713] border border-[#2D3E31] rounded-xl p-8 flex flex-col items-center justify-center text-center my-2">
+                                <CalendarX2 size={36} className="text-gray-500 mb-2" />
+                                <h4 className="text-sm font-bold text-gray-300">Sin turnos agendados</h4>
+                                <p className="text-xs text-gray-500 max-w-sm mt-1 mb-4">
+                                    Los turnos agendados desde la base de datos aparecerán automáticamente en esta lista.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/agendar')}
+                                    className="py-2 px-4 bg-[#1A251D] border border-[#2D3E31] text-[#E08A3E] font-semibold rounded-xl text-xs hover:border-[#E08A3E] transition-all cursor-pointer"
+                                >
+                                    + Agendar cita manualmente
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                {turnos.map((t, idx) => (
+                                    <div key={t.id || idx} className="flex items-center justify-between p-3 bg-[#111713] border border-[#2D3E31] rounded-xl">
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-xs font-bold text-gray-400 w-12">
+                                                {t.hora || '00:00'}
+                                            </span>
+                                            <div className="w-8 h-8 bg-[#1A251D] border border-[#2D3E31] rounded-lg flex items-center justify-center text-xs font-bold text-[#E08A3E]">
+                                                {t.cliente?.nombre ? t.cliente.nombre.charAt(0) : 'C'}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold">{t.cliente?.nombre || 'Cliente sin nombre'}</h4>
+                                                <p className="text-[10px] text-gray-500">{t.servicio?.nombre || 'Servicio de barbería'}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className="text-xs font-bold">{c.cliente}</h4>
-                                            <p className="text-[10px] text-gray-500">{c.servicio}</p>
-                                        </div>
+                                        <span className="text-[10px] text-[#E08A3E] bg-[#E08A3E]/10 border border-[#E08A3E]/30 px-3 py-1 rounded-full font-semibold">
+                                            {t.estado || 'Confirmado'}
+                                        </span>
                                     </div>
-                                    <span className="text-[10px] text-[#E08A3E] bg-[#E08A3E]/10 border border-[#E08A3E]/30 px-3 py-1 rounded-full font-semibold">
-                    Confirmado
-                  </span>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                 </div>
 
+                {/* Columna Derecha: Gestión Rápida */}
                 <div className="lg:col-span-4 flex flex-col gap-6">
                     <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-5">
                         <h3 className="font-bold text-sm mb-4">Gestión rápida</h3>
                         <div className="grid grid-cols-2 gap-2">
-                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E]">
+                            <button
+                                onClick={() => navigate('/agendar')}
+                                className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer"
+                            >
                                 <Plus size={14} className="text-[#E08A3E]" />
                                 <span>Nuevo turno</span>
                             </button>
-                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E]">
+                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
                                 <Bell size={14} className="text-[#E08A3E]" />
                                 <span>Recordatorios</span>
                             </button>
-                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E]">
+                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
                                 <DollarSign size={14} className="text-[#E08A3E]" />
-                                <span>Cobros</span>
+                                <span>Cobros ({pagos.length})</span>
                             </button>
-                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E]">
+                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
                                 <Settings size={14} className="text-[#E08A3E]" />
-                                <span>Servicios</span>
+                                <span>Servicios ({servicios.length})</span>
                             </button>
                         </div>
                     </div>
