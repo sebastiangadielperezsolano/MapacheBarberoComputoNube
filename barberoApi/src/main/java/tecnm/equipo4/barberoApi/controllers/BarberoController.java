@@ -12,10 +12,6 @@ import java.util.Optional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
-import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
-
-import java.net.URI;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
