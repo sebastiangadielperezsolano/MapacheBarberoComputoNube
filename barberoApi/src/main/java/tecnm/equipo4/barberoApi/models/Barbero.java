@@ -13,9 +13,12 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 
-@PrimaryKeyJoinColumn(name = "idUsuario")
 @Table (name = "barbero")
-public class Barbero extends Usuario{
+public class Barbero {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idBarbero;
+
     @Column(nullable = false)
     private int experiencia;
 
