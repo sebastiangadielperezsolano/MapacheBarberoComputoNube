@@ -1,7 +1,6 @@
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,51 +13,14 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 
+@PrimaryKeyJoinColumn(name = "idUsuario")
 @Table (name = "barbero")
-public class Barbero {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idBarbero;
-
-    @NotNull
-    @NotEmpty
-    @Column(name = "nombreCompleto")
-    private String nombreCompleto;
-
-    @NotNull
-    @Size(min = 10, max = 12)
-    @Column(name = "telefono")
-    @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
-    private String telefono;
-
-    @NotNull
-    @Email
-    @Column(name = "email")
-    private String email;
-
-    @NotBlank
-    @Column(name = "password")
-    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$",
-            message = "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial")
-    private String password;
-
-    @NotNull
-    @Column(name = "tipoUsuario")
-    private String tipoUsuario;
-
-    @NotNull
-    @Column(name = "Experiencia")
-    @Min(value = 1)
+public class Barbero extends Usuario{
+    @Column(nullable = false)
     private int experiencia;
 
-    @NotNull
-    @NotEmpty
-    @Column(name = "tituloRol")
+    @Column(nullable = false)
     private String tituloRol;
-
-    @Lob
-    @Column(name = "foto", columnDefinition = "LONGBLOB")
-    private byte[] foto;
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
@@ -66,7 +28,18 @@ public class Barbero {
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
-    //Relacion 1:N con Cliente
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<Cliente> clientes = new ArrayList<>();
+    //relacion de muchos a 1, muchos clientes pueden tener un barbero
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idBarbero")
+    private Barbero barbero;
+
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    private List<Turno> turno = new ArrayList<>();
+
+    //relacion de muchos a 1, muchos clientes pueden tener un barbero
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idCliente")
+    private Cliente cliente;
+
+
 }
