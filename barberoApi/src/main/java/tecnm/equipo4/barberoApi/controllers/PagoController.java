@@ -22,7 +22,7 @@ public class PagoController {
         if (estado != null && !estado.isBlank()) {
             return ResponseEntity.ok(pagoService.listarPorEstado(estado));
         }
-        return ResponseEntity.ok(pagoService.listarTodos());
+        return ResponseEntity.ok((List<Pago>) pagoService.listarTodos());
     }
 
     @GetMapping("/{id}")

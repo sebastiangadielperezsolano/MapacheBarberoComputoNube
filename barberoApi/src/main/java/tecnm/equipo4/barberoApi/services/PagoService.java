@@ -14,7 +14,7 @@ public class PagoService {
 
     private final PagoRepository pagoRepository;
 
-    public List<Pago> listarTodos() {
+    public Iterable<Pago> listarTodos() {
         return pagoRepository.findAll();
     }
 

@@ -1,5 +1,6 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotEmpty;
@@ -47,6 +48,21 @@ public class Turno {
     @Column(name = "sucursal")
     private String sucursal;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idCliente")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Cliente cliente;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idBarbero")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Barbero barbero;
+
     @OneToOne(mappedBy = "turno", cascade = CascadeType.ALL)
     private Pago pago;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "idServicio")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Servicio servicio;
 }

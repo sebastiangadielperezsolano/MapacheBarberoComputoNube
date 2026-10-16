@@ -54,7 +54,7 @@ public class Cliente {
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne
     @JoinColumn(name = "idBarbero")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Barbero barbero;

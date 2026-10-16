@@ -32,17 +32,6 @@ public class Barbero {
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
     //relacion de muchos a 1, muchos clientes pueden tener un barbero
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idBarbero")
-    private Barbero barbero;
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
-    private List<Turno> turno = new ArrayList<>();
-
-    //relacion de muchos a 1, muchos clientes pueden tener un barbero
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "idCliente")
-    private Cliente cliente;
-
-
+    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    private List<Cliente> clientes = new ArrayList<>();
 }
