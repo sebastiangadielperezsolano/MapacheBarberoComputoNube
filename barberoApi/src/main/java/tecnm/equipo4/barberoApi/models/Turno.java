@@ -8,15 +8,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.text.DateFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-
 @Table(name = "turno")
 public class Turno {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "idTurno")
@@ -25,12 +26,11 @@ public class Turno {
     @NotNull
     @Column(name = "fecha")
     @FutureOrPresent
-    private DateFormat fecha;
+    private LocalDate fecha;
 
     @NotNull
     @Column(name = "horaInicio")
-    @FutureOrPresent
-    private DateFormat horaInicio;
+    private LocalTime horaInicio;
 
     @NotNull
     @NotEmpty
@@ -46,6 +46,19 @@ public class Turno {
     @NotEmpty
     @Column(name = "sucursal")
     private String sucursal;
+
+    // Relación con Barbero (resuelve el primer error)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idBarbero")
+    private Barbero barbero;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idCliente")
+    private Cliente cliente;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idServicio")
+    private Servicio servicio;
 
     @OneToOne(mappedBy = "turno", cascade = CascadeType.ALL)
     private Pago pago;

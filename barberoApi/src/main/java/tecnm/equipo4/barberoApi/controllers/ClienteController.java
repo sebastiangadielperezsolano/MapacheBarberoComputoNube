@@ -14,33 +14,35 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @RequestMapping("/cliente")
 public class ClienteController {
+
     private final ClienteRepository clienteRepository;
 
-    //Consulta todos los clientes
+    // Consulta todos los clientes
     @GetMapping
     public ResponseEntity<Iterable<Cliente>> findAll() {
         return ResponseEntity.ok(clienteRepository.findAll());
     }
 
-    //Consulta cliente por su identificador
+    // Consulta cliente por su identificador
     @GetMapping("/{idCliente}")
     public ResponseEntity<Cliente> findById(@PathVariable Long idCliente) {
         Optional<Cliente> clienteOptional = clienteRepository.findById(idCliente);
-        return clienteOptional.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return clienteOptional.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    //Crear un cliente
-    @PostMapping("/{idCliente}")
-    public ResponseEntity<?> create(@RequestBody Cliente newCliente, UriComponentsBuilder ucb) {
+    // Crear un cliente (Se quita /{idCliente} del path mapping para peticiones POST)
+    @PostMapping
+    public ResponseEntity<Cliente> create(@RequestBody Cliente newCliente, UriComponentsBuilder ucb) {
         Cliente savedCliente = clienteRepository.save(newCliente);
-        URI uri = ucb.path("cliente/{idUsuario}")
+        URI uri = ucb.path("/cliente/{idCliente}")
                 .buildAndExpand(savedCliente.getIdCliente())
                 .toUri();
 
-        return ResponseEntity.created(uri).build();
+        return ResponseEntity.created(uri).body(savedCliente);
     }
 
-    //Actualizar un cliente
+    // Actualizar un cliente
     @PutMapping("/{idCliente}")
     public ResponseEntity<?> update(@PathVariable Long idCliente, @RequestBody Cliente putCliente) {
         Optional<Cliente> clienteAnt = clienteRepository.findById(idCliente);
@@ -52,7 +54,7 @@ public class ClienteController {
         return ResponseEntity.notFound().build();
     }
 
-    //Eliminar un cliente
+    // Eliminar un cliente
     @DeleteMapping("/{idCliente}")
     public ResponseEntity<?> delete(@PathVariable Long idCliente) {
         if (clienteRepository.findById(idCliente).isPresent()) {

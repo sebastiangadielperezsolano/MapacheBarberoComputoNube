@@ -4,7 +4,7 @@ import InicioSesion from './paginas/publica/inicioSesion';
 import Registro from './paginas/publica/registro';
 import InicioCliente from './paginas/cliente/inicioCliente';
 import RegistroC from './paginas/cliente/registroCita';
-import inicioBarbero from './paginas/barbero/inicioBarbero';
+import InicioBarbero from './paginas/barbero/inicioBarbero';
 import RegistroB from './paginas/barbero/registroBarbero';
 //Ya callate wicho
 
@@ -22,7 +22,7 @@ function App() {
 
                 <Route path="/agendar" element={<RegistroC />} />
 
-                <Route path="/barbero" element={<inicioBarbero />} />
+                <Route path="/barbero" element={<InicioBarbero />} />
 
                 <Route path="/empleado" element={<RegistroB />} />
             </Routes>

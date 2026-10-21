@@ -1,23 +1,23 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.text.DateFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-
-@Table (name = "disponibilidadB")
+@Table(name = "disponibilidadB")
 public class DisponibilidadBarbero {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDisponibilidad;
@@ -25,20 +25,18 @@ public class DisponibilidadBarbero {
     @NotNull
     @Column(name = "dia")
     @FutureOrPresent
-    private DateFormat dia;
+    private LocalDate dia;
 
     @NotNull
     @Column(name = "diaEntrada")
-    @FutureOrPresent
-    private DateFormat diaEntrada;
+    private LocalTime diaEntrada;
 
     @NotNull
     @Column(name = "diaSalida")
-    @Future
-    private DateFormat diaSalida;
+    private LocalTime diaSalida;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idUsuario")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @JsonIgnoreProperties({"disponibilidades", "turnos", "password"})
     private Barbero barbero;
 }
