@@ -16,6 +16,7 @@ import java.util.Optional;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/usuarios")
+@CrossOrigin(origins = "*")
 public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
@@ -23,7 +24,6 @@ public class UsuarioController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        // 1. Buscar primero en la tabla general Usuario (para Barberos u otros usuarios del sistema)
         Optional<Usuario> usuarioOptional = usuarioRepository.findByEmailAndPassword(
                 loginRequest.getEmail(),
                 loginRequest.getPassword()
@@ -42,12 +42,10 @@ public class UsuarioController {
             return ResponseEntity.ok(clienteOptional.get());
         }
 
-        // 3. Si no existe en ninguno
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("message", "Correo o contraseña incorrectos"));
     }
 
-    // DTO interno para mapear la petición JSON de React ({ "email": "...", "password": "..." })
     @Data
     public static class LoginRequest {
         private String email;

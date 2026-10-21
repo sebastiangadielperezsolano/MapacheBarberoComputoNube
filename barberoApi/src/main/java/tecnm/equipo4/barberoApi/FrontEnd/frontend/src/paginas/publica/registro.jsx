@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, User, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, Phone, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const API_URL = 'http://localhost:8080';
@@ -7,12 +7,16 @@ const API_URL = 'http://localhost:8080';
 export default function RegistroCliente() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        nombre: '',
+        nombreCompleto: '',
         email: '',
+        telefono: '',
         password: '',
+        perfil: 'CLIENTE',
+        tipoUsuario: 'CLIENTE'
     });
 
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
 
     const handleChange = (e) => {
         setFormData({
@@ -24,23 +28,37 @@ export default function RegistroCliente() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMsg('');
+
+        // Payload garantizado con campos requeridos por la BD
+        const payload = {
+            nombreCompleto: formData.nombreCompleto.trim(),
+            email: formData.email.trim(),
+            telefono: formData.telefono.trim(),
+            password: formData.password,
+            perfil: 'CLIENTE',
+            tipoUsuario: 'CLIENTE'
+        };
 
         try {
             const response = await fetch(`${API_URL}/cliente`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
-            if (response.ok) {
-                console.log('Cliente registrado en BD');
+            if (response.ok || response.status === 201) {
+                alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
+                navigate('/login');
+            } else {
+                const textError = await response.text();
+                setErrorMsg(`Error ${response.status}: ${textError || 'No se pudo crear la cuenta'}`);
             }
         } catch (error) {
-            console.log('Modo prueba: Servidor no detectado, simulando registro...');
+            console.error('Error de conexión:', error);
+            setErrorMsg('No se pudo establecer conexión con el servidor.');
         } finally {
             setLoading(false);
-            alert('¡Cuenta creada con éxito!');
-            navigate('/login');
         }
     };
 
@@ -90,6 +108,12 @@ export default function RegistroCliente() {
                         </p>
                     </div>
 
+                    {errorMsg && (
+                        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 text-red-300 text-xs rounded-xl text-center">
+                            {errorMsg}
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">
@@ -99,10 +123,10 @@ export default function RegistroCliente() {
                                 <User className="absolute left-3 text-gray-400" size={18} />
                                 <input
                                     type="text"
-                                    name="nombre"
+                                    name="nombreCompleto"
                                     required
                                     placeholder="Tu nombre completo"
-                                    value={formData.nombre}
+                                    value={formData.nombreCompleto}
                                     onChange={handleChange}
                                     className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
                                 />
@@ -121,6 +145,24 @@ export default function RegistroCliente() {
                                     required
                                     placeholder="tu@correo.com"
                                     value={formData.email}
+                                    onChange={handleChange}
+                                    className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                                Teléfono de Contacto
+                            </label>
+                            <div className="relative flex items-center">
+                                <Phone className="absolute left-3 text-gray-400" size={18} />
+                                <input
+                                    type="tel"
+                                    name="telefono"
+                                    required
+                                    placeholder="+52 231 000 0000"
+                                    value={formData.telefono}
                                     onChange={handleChange}
                                     className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
                                 />

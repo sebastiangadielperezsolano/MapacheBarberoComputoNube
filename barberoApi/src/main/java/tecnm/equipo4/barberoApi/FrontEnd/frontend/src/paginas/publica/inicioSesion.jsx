@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 const API_URL = 'http://localhost:8080';
 
 export default function InicioSesion() {
-    const navigate = useNavigate(); // Corregido: inicialización de useNavigate
+    const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
         email: '',
@@ -13,6 +13,7 @@ export default function InicioSesion() {
     });
 
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
 
     const handleChange = (e) => {
         setFormData({
@@ -24,29 +25,39 @@ export default function InicioSesion() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMsg('');
 
         try {
-            // Intenta consultar la existencia del usuario en la API
-            const response = await fetch(`${API_URL}/cliente`);
+            const response = await fetch(`${API_URL}/api/usuarios/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
             if (response.ok) {
-                console.log('Petición de inicio de sesión procesada');
+                const usuarioValido = await response.json();
+
+                localStorage.setItem('usuarioSesion', JSON.stringify(usuarioValido));
+
+                if (usuarioValido.tipoUsuario === 'BARBERO' || usuarioValido.perfil === 'BARBERO') {
+                    navigate('/barbero');
+                } else {
+                    navigate('/cliente');
+                }
+            } else {
+                const resData = await response.json().catch(() => ({}));
+                setErrorMsg(resData.message || 'Correo o contraseña incorrectos.');
             }
         } catch (error) {
-            console.log('Modo prueba: Servidor backend no detectado, continuando navegación...');
+            console.error('Error de red:', error);
+            setErrorMsg('No se pudo establecer conexión con el servidor.');
         } finally {
             setLoading(false);
-            // Redirección condicional: si es correo de barbero redirige al dashboard de barbero
-            if (formData.email.includes('barbero') || formData.email.includes('mapache')) {
-                navigate('/barbero');
-            } else {
-                navigate('/cliente');
-            }
         }
     };
 
     return (
         <div className="relative min-h-screen bg-[#111713] text-white flex flex-col justify-between overflow-hidden font-sans">
-
             <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-[#1A251D] rounded-full opacity-60 pointer-events-none" />
             <div className="absolute bottom-[-100px] left-[-100px] w-96 h-96 bg-[#1A251D] rounded-full opacity-60 pointer-events-none" />
 
@@ -59,19 +70,13 @@ export default function InicioSesion() {
                         <ArrowLeft size={18} />
                     </button>
                     <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
-                        <img
-                            src="/racoon_1.png"
-                            alt="El Mapache Bigotón"
-                            className="w-full h-full object-contain"
-                        />
+                        <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
                     </div>
                     <div>
                         <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
                             El Mapache Bigotón
                         </span>
-                        <h1 className="text-xl font-bold tracking-tight text-white leading-none">
-                            BarberApp
-                        </h1>
+                        <h1 className="text-xl font-bold tracking-tight text-white leading-none">BarberApp</h1>
                     </div>
                 </div>
             </header>
@@ -82,16 +87,18 @@ export default function InicioSesion() {
                         <span className="text-xs tracking-widest text-[#E08A3E] font-bold uppercase mb-1 block">
                             Bienvenido de nuevo
                         </span>
-                        <h2 className="text-3xl font-extrabold tracking-tight">
-                            Iniciar Sesión
-                        </h2>
+                        <h2 className="text-3xl font-extrabold tracking-tight">Iniciar Sesión</h2>
                     </div>
+
+                    {errorMsg && (
+                        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 text-red-300 text-xs rounded-xl text-center">
+                            {errorMsg}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                         <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                                Correo Electrónico
-                            </label>
+                            <label className="block text-xs font-medium text-gray-300 mb-1.5">Correo Electrónico</label>
                             <div className="relative flex items-center">
                                 <Mail className="absolute left-3 text-gray-400" size={18} />
                                 <input
@@ -107,9 +114,7 @@ export default function InicioSesion() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                                Contraseña
-                            </label>
+                            <label className="block text-xs font-medium text-gray-300 mb-1.5">Contraseña</label>
                             <div className="relative flex items-center">
                                 <Lock className="absolute left-3 text-gray-400" size={18} />
                                 <input

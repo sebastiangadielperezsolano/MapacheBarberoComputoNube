@@ -14,15 +14,22 @@ import java.util.Optional;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/barbero")
-@CrossOrigin(origins = "*") // Habilita peticiones desde React
+@CrossOrigin(origins = "*")
 public class BarberoController {
 
     private final BarberoRepository barberoRepository;
 
     // Consultar todos los barberos
     @GetMapping
-    public ResponseEntity<Iterable<Barbero>> findAll() {
-        return ResponseEntity.ok(barberoRepository.findAll());
+    public ResponseEntity<?> findAll() {
+        try {
+            Iterable<Barbero> barberos = barberoRepository.findAll();
+            return ResponseEntity.ok(barberos);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al consultar barberos: " + e.getMessage());
+        }
     }
 
     // Consultar barbero por ID
@@ -33,7 +40,7 @@ public class BarberoController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // Registrar/Crear un nuevo barbero
+    //Crear un nuevo barbero
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Barbero newBarbero, UriComponentsBuilder ucb) {
         try {
@@ -50,7 +57,7 @@ public class BarberoController {
 
             return ResponseEntity.created(uri).body(savedBarbero);
         } catch (Exception e) {
-            e.printStackTrace(); // Muestra el detalle en la consola de IntelliJ
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error al crear el barbero: " + e.getMessage());
         }

@@ -1,9 +1,7 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.FutureOrPresent;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +14,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @Data
 @Table(name = "turno")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Turno {
 
     @Id
@@ -23,43 +22,37 @@ public class Turno {
     @Column(name = "idTurno")
     private Long idTurno;
 
-    @NotNull
     @Column(name = "fecha")
-    @FutureOrPresent
     private LocalDate fecha;
 
-    @NotNull
     @Column(name = "horaInicio")
     private LocalTime horaInicio;
 
-    @NotNull
-    @NotEmpty
     @Column(name = "estado")
     private String estado;
 
-    @NotNull
-    @NotEmpty
     @Column(name = "notasCliente")
     private String notasCliente;
 
-    @NotNull
-    @NotEmpty
     @Column(name = "sucursal")
     private String sucursal;
 
-    // Relación con Barbero (resuelve el primer error)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idBarbero")
+    @JsonIgnoreProperties({"turnos", "disponibilidades", "password"})
     private Barbero barbero;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idCliente")
+    @JsonIgnoreProperties({"turnos", "password", "barbero"})
     private Cliente cliente;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idServicio")
+    @JsonIgnoreProperties({"turnos"})
     private Servicio servicio;
 
     @OneToOne(mappedBy = "turno", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"turno"})
     private Pago pago;
 }

@@ -1,10 +1,11 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
@@ -14,48 +15,30 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-
+@EqualsAndHashCode(callSuper = true)
+@PrimaryKeyJoinColumn(name = "id_usuario") // Coincide con la columna FK de MySQL
 @Table(name = "cliente")
-public class Cliente {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idCliente;
-
-    @NotNull
-    @NotEmpty
-    @Column(name = "nombreCompleto")
-    private String nombreCompleto;
-
-    @NotNull
-    @Size(min = 10, max = 12)
-    @Column(name = "telefono")
-    @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
-    private String telefono;
-
-    @NotNull
-    @Email
-    @Column(name = "email")
-    private String email;
-
-    @NotBlank
-    @Column(name = "password")
-    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$",
-            message = "La contraseña debe tener: al menos una mayúscula, una minúscula, un número y un carácter especial")
-    private String password;
-
-    @NotNull
-    @Column(name = "tipoUsuario")
-    private String tipoUsuario;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Cliente extends Usuario {
 
     @Lob
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;
 
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Turno> turnos = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "idBarbero")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "id_barbero", nullable = true)
+    @JsonIgnoreProperties({"turnos", "disponatributos", "password"})
     private Barbero barbero;
+
+    public Long getIdCliente() {
+        return this.getIdUsuario();
+    }
+
+    public void setIdCliente(Long id) {
+        this.setIdUsuario(id);
+    }
 }

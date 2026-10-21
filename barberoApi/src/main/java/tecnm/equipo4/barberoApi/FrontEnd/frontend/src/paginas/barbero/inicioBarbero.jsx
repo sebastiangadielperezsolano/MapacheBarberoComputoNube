@@ -7,7 +7,8 @@ import {
     Bell,
     DollarSign,
     Settings,
-    CalendarX2
+    CalendarX2,
+    LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,13 +17,20 @@ const API_BASE_URL = 'http://localhost:8080';
 export default function BarberoDashboard() {
     const navigate = useNavigate();
 
-    // Obtener información del usuario autenticado guardado en sesión
-    const usuarioSesion = JSON.parse(localStorage.getItem('usuarioSesion') || '{}');
+    const sesionRaw = localStorage.getItem('usuarioSesion') || localStorage.getItem('usuario') || '{}';
+    const usuarioSesion = JSON.parse(sesionRaw);
 
-    // Estados vinculados a la API
+    const nombreBarbero =
+        usuarioSesion.nombreCompleto ||
+        usuarioSesion.nombre ||
+        usuarioSesion.usuario?.nombreCompleto ||
+        'Barbero';
+
+    const inicialBarbero = nombreBarbero.charAt(0).toUpperCase();
+
     const [barberos, setBarberos] = useState([]);
     const [turnos, setTurnos] = useState([]);
-    const [disponibilidades, setDisponibilidades] = useState([]); // Corregido: 'disponibilidades' con 's'
+    const [disponibilidades, setDisponibilidades] = useState([]);
     const [pagos, setPagos] = useState([]);
     const [clientes, setClientes] = useState([]);
     const [servicios, setServicios] = useState([]);
@@ -77,11 +85,12 @@ export default function BarberoDashboard() {
         cargarDatosDashboard();
     }, []);
 
-    // Nombre dinámico del barbero activo
-    const nombreBarbero = usuarioSesion.nombreCompleto || barberos[0]?.nombreCompleto || 'Barbero';
-    const inicialBarbero = nombreBarbero.charAt(0).toUpperCase();
+    const handleLogout = () => {
+        localStorage.removeItem('usuarioSesion');
+        localStorage.removeItem('usuario');
+        navigate('/login');
+    };
 
-    // Cálculos métricos
     const turnosCompletados = turnos.filter(t => t.estado === 'COMPLETADO' || t.estado === 'FINALIZADO').length;
     const turnosPendientes = turnos.filter(t => t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO').length;
 
@@ -91,10 +100,8 @@ export default function BarberoDashboard() {
     return (
         <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">
 
-            {/* Fondo decorativo */}
             <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
-            {/* ENCABEZADO */}
             <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
@@ -136,11 +143,19 @@ export default function BarberoDashboard() {
                             <span className="block text-xs font-bold leading-none">
                                 {nombreBarbero}
                             </span>
-                            <span className="text-[10px] text-gray-400">
-                                Barbero
+                            <span className="text-[10px] text-gray-400 block">
+                                Barbero Active
                             </span>
                         </div>
                     </div>
+
+                    <button
+                        onClick={handleLogout}
+                        title="Cerrar sesión"
+                        className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+                    >
+                        <LogOut size={16} />
+                    </button>
                 </div>
             </header>
 
@@ -154,9 +169,6 @@ export default function BarberoDashboard() {
                     </button>
                     <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer">
                         Clientes ({clientes.length})
-                    </button>
-                    <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer">
-                        Perfil
                     </button>
                 </div>
 
@@ -178,16 +190,11 @@ export default function BarberoDashboard() {
                         Hola, {nombreBarbero}
                     </h2>
                     <p className="text-xs text-gray-400">
-                        Gestiona tu agenda, revisa el rendimiento del día y prepara la próxima atención desde un solo lugar.
+                        Gestiona tu agenda, revisa el rendimiento del día y prepara la próxima atención.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <button className="py-2.5 px-4 bg-[#1A251D] hover:bg-[#25352a] text-gray-200 border border-[#2D3E31] font-semibold rounded-xl flex items-center gap-2 text-xs transition-all cursor-pointer">
-                        <Calendar size={16} />
-                        <span>Ver agenda</span>
-                    </button>
-
                     <button
                         onClick={() => navigate('/agendar')}
                         className="py-2.5 px-5 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-bold rounded-xl flex items-center gap-2 text-xs transition-all shadow-lg cursor-pointer"
@@ -216,19 +223,15 @@ export default function BarberoDashboard() {
                         </div>
 
                         <div className="bg-[#1A251D] border border-[#2D3E31] p-4 rounded-2xl">
-                            <span className="text-[10px] text-gray-400 block mb-1">Clientes hoy</span>
+                            <span className="text-[10px] text-gray-400 block mb-1">Clientes</span>
                             <span className="text-2xl font-black">{clientes.length}</span>
-                            <span className="text-[10px] text-gray-500 block mt-1">Registrados en sistema</span>
+                            <span className="text-[10px] text-gray-500 block mt-1">Registrados</span>
                         </div>
 
                         <div className="bg-[#1A251D] border border-[#2D3E31] p-4 rounded-2xl">
-                            <span className="text-[10px] text-gray-400 block mb-1">Ocupación</span>
-                            <span className="text-2xl font-black">
-                                {Array.isArray(disponibilidades) && disponibilidades.length > 0 ? `${Math.min(100, turnos.length * 20)}%` : '0%'}
-                            </span>
-                            <span className="text-[10px] text-gray-500 block mt-1">
-                                {Array.isArray(disponibilidades) && disponibilidades.length > 0 ? 'Franjas según disponibilidad' : 'Disponible'}
-                            </span>
+                            <span className="text-[10px] text-gray-400 block mb-1">Total Turnos</span>
+                            <span className="text-2xl font-black">{turnos.length}</span>
+                            <span className="text-[10px] text-gray-500 block mt-1">En sistema</span>
                         </div>
                     </div>
 
@@ -238,12 +241,9 @@ export default function BarberoDashboard() {
                             <div>
                                 <h3 className="font-bold text-lg">Agenda diaria</h3>
                                 <span className="text-xs text-gray-400">
-                                    {turnos.length} clientes programados
+                                    {turnos.length} citas registradas
                                 </span>
                             </div>
-                            <span className="text-xs bg-[#111713] border border-[#2D3E31] px-3 py-1 rounded-full text-gray-400">
-                                Hoy · {disponibilidades[0]?.diaEntrada || '09:00'} - {disponibilidades[0]?.diaSalida || '19:00'}
-                            </span>
                         </div>
 
                         {turnos.length === 0 ? (
@@ -262,32 +262,43 @@ export default function BarberoDashboard() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
-                                {turnos.map((t, idx) => (
-                                    <div key={t.idTurno || idx} className="flex items-center justify-between p-3 bg-[#111713] border border-[#2D3E31] rounded-xl">
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-xs font-bold text-gray-400 w-12">
-                                                {t.horaInicio || '00:00'}
+                                {turnos.map((t, idx) => {
+                                    const clienteNombre = t.cliente?.nombreCompleto ||
+                                        t.clienteNombre ||
+                                        clientes.find(c => (c.idCliente || c.idUsuario) === t.idCliente)?.nombreCompleto ||
+                                        'Cliente registrado';
+
+                                    const servicioNombre = t.servicio?.nombreServicio ||
+                                        t.servicioNombre ||
+                                        servicios.find(s => s.idServicio === t.idServicio)?.nombreServicio ||
+                                        'Servicio de barbería';
+
+                                    return (
+                                        <div key={t.idTurno || idx} className="flex items-center justify-between p-3 bg-[#111713] border border-[#2D3E31] rounded-xl">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-xs font-bold text-gray-400 w-12">
+                                                    {t.horaInicio || t.hora || '09:00'}
+                                                </span>
+                                                <div className="w-8 h-8 bg-[#1A251D] border border-[#2D3E31] rounded-lg flex items-center justify-center text-xs font-bold text-[#E08A3E]">
+                                                    {clienteNombre.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold">{clienteNombre}</h4>
+                                                    <p className="text-[10px] text-gray-500">{servicioNombre} • {t.fecha || 'Hoy'}</p>
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-[#E08A3E] bg-[#E08A3E]/10 border border-[#E08A3E]/30 px-3 py-1 rounded-full font-semibold">
+                                                {t.estado || 'CONFIRMADO'}
                                             </span>
-                                            <div className="w-8 h-8 bg-[#1A251D] border border-[#2D3E31] rounded-lg flex items-center justify-center text-xs font-bold text-[#E08A3E]">
-                                                {t.cliente?.nombreCompleto ? t.cliente.nombreCompleto.charAt(0) : 'C'}
-                                            </div>
-                                            <div>
-                                                <h4 className="text-xs font-bold">{t.cliente?.nombreCompleto || 'Cliente sin nombre'}</h4>
-                                                <p className="text-[10px] text-gray-500">{t.servicio?.nombreServicio || 'Servicio de barbería'}</p>
-                                            </div>
                                         </div>
-                                        <span className="text-[10px] text-[#E08A3E] bg-[#E08A3E]/10 border border-[#E08A3E]/30 px-3 py-1 rounded-full font-semibold">
-                                            {t.estado || 'Confirmado'}
-                                        </span>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
 
                 </div>
 
-                {/* Columna Derecha */}
                 <div className="lg:col-span-4 flex flex-col gap-6">
                     <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-5">
                         <h3 className="font-bold text-sm mb-4">Gestión rápida</h3>
@@ -300,16 +311,8 @@ export default function BarberoDashboard() {
                                 <span>Nuevo turno</span>
                             </button>
                             <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
-                                <Bell size={14} className="text-[#E08A3E]" />
-                                <span>Recordatorios</span>
-                            </button>
-                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
                                 <DollarSign size={14} className="text-[#E08A3E]" />
                                 <span>Cobros ({pagos.length})</span>
-                            </button>
-                            <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
-                                <Settings size={14} className="text-[#E08A3E]" />
-                                <span>Servicios ({servicios.length})</span>
                             </button>
                         </div>
                     </div>

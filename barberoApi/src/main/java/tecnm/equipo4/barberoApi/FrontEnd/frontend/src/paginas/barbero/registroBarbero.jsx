@@ -14,9 +14,9 @@ export default function RegistroBarbero() {
         telefono: '',
         password: '',
         experiencia: 1,
-        tituloRol: 'Barbero Principal', // String exigido por Barbero
-        tipoUsuario: 'BARBERO',         // Exigido por Usuario
-        perfil: 'BARBERO'               // Exigido por Usuario (columna NOT NULL)
+        tituloRol: 'Barbero Principal',
+        tipoUsuario: 'BARBERO',
+        perfil: 'BARBERO'
     });
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -150,7 +150,6 @@ export default function RegistroBarbero() {
                             </div>
                         </div>
 
-                        {/* Campo Experiencia */}
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">Años de Experiencia</label>
                             <div className="relative flex items-center">
@@ -167,7 +166,6 @@ export default function RegistroBarbero() {
                             </div>
                         </div>
 
-                        {/* Campo Título o Rol */}
                         <div>
                             <label className="block text-xs font-medium text-gray-300 mb-1.5">Título / Rol en Barbería</label>
                             <div className="relative flex items-center">

@@ -1,8 +1,11 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
@@ -12,9 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@EqualsAndHashCode(callSuper = true)
 @PrimaryKeyJoinColumn(name = "idUsuario")
 @Table(name = "barbero")
-@DiscriminatorValue("BARBERO")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Barbero extends Usuario {
 
     @Column(nullable = false)
@@ -24,11 +28,14 @@ public class Barbero extends Usuario {
     private String tituloRol;
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Turno> turnos = new ArrayList<>();
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
+    @JsonIgnore
     public Long getIdBarbero() {
         return this.getIdUsuario();
     }
