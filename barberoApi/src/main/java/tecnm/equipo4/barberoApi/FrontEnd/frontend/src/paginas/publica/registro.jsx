@@ -1,212 +1,231 @@
 import React, { useState } from 'react';
-import { UserPlus, User, Mail, Lock, Phone, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { User, Mail, Phone, Lock, ArrowLeft, UserPlus, CheckCircle2 } from 'lucide-react';
 
 const API_URL = 'http://localhost:8081';
 
-export default function RegistroCliente() {
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        nombreCompleto: '',
-        email: '',
-        telefono: '',
-        password: '',
-        perfil: 'CLIENTE',
-        tipoUsuario: 'CLIENTE'
+export default function Registro() {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    nombre_completo: '',
+    email: '',
+    telefono: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [exitoMsg, setExitoMsg] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
     });
+  };
 
-    const [loading, setLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setExitoMsg('');
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMsg('Las contraseñas no coinciden.');
+      return;
+    }
+
+    if (formData.password.length < 4) {
+      setErrorMsg('La contraseña debe tener al menos 4 caracteres.');
+      return;
+    }
+
+    setLoading(true);
+
+    // Mapeo exacto con las columnas de la tabla usuario en MySQL
+    const bodyUsuario = {
+      nombreCompleto: formData.nombre_completo,
+      email: formData.email,
+      telefono: formData.telefono,
+      password: formData.password,
+      perfil: 'CLIENTE',
+      tipoUsuario: 'CLIENTE'
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setErrorMsg('');
+    try {
+      const response = await fetch(`${API_URL}/api/usuarios/registro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyUsuario)
+      });
 
-        // Payload garantizado con campos requeridos por la BD
-        const payload = {
-            nombreCompleto: formData.nombreCompleto.trim(),
-            email: formData.email.trim(),
-            telefono: formData.telefono.trim(),
-            password: formData.password,
-            perfil: 'CLIENTE',
-            tipoUsuario: 'CLIENTE'
-        };
+      if (response.ok) {
+        setExitoMsg('¡Cuenta creada con éxito! Redirigiendo al inicio de sesión...');
+        setTimeout(() => {
+          navigate('/iniciar-sesion');
+        }, 1500);
+      } else {
+        const errorData = await response.text();
+        setErrorMsg('No se pudo completar el registro. Verifica los datos ingresados.');
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Error de conexión con el servidor backend.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        try {
-            const response = await fetch(`${API_URL}/cliente`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+  return (
+    <div className="min-h-screen bg-[#111613] text-gray-200 flex items-center justify-center p-6 font-sans relative overflow-hidden select-none">
+      
+      {/* Luces y formas difuminadas de fondo de Figma */}
+      <div className="absolute -top-32 -right-24 w-[650px] h-[650px] bg-[#1a2d21]/60 rounded-full blur-[130px] pointer-events-none"></div>
+      <div className="absolute -bottom-32 -left-24 w-[550px] h-[550px] bg-[#122018]/50 rounded-full blur-[140px] pointer-events-none"></div>
 
-            if (response.ok || response.status === 201) {
-                alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
-                navigate('/login');
-            } else {
-                const textError = await response.text();
-                setErrorMsg(`Error ${response.status}: ${textError || 'No se pudo crear la cuenta'}`);
-            }
-        } catch (error) {
-            console.error('Error de conexión:', error);
-            setErrorMsg('No se pudo establecer conexión con el servidor.');
-        } finally {
-            setLoading(false);
-        }
-    };
+      {/* Contenedor tipo Tarjeta Figma */}
+      <div className="w-full max-w-lg bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md relative z-10">
+        
+        <Link 
+          to="/iniciar-sesion" 
+          className="flex items-center gap-1.5 text-xs text-[#d97706] hover:underline mb-6 inline-flex"
+        >
+          <ArrowLeft size={14} /> Volver al inicio de sesión
+        </Link>
 
-    return (
-        <div className="relative min-h-screen bg-[#111713] text-white flex flex-col justify-between overflow-hidden font-sans">
-
-            <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-[#1A251D] rounded-full opacity-60 pointer-events-none" />
-            <div className="absolute bottom-[-100px] left-[-100px] w-96 h-96 bg-[#1A251D] rounded-full opacity-60 pointer-events-none" />
-
-            <header className="relative z-10 p-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="w-10 h-10 bg-[#1A251D] border border-[#2D3E31] rounded-xl flex items-center justify-center hover:bg-[#25352a] transition-colors cursor-pointer"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
-                    <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
-                        <img
-                            src="/racoon_1.png"
-                            alt="El Mapache Bigotón"
-                            className="w-full h-full object-contain"
-                        />
-                    </div>
-                    <div>
-                        <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
-                            El Mapache Bigotón
-                        </span>
-                        <h1 className="text-xl font-bold tracking-tight text-white leading-none">
-                            BarberApp
-                        </h1>
-                    </div>
-                </div>
-            </header>
-
-            <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8">
-                <div className="w-full max-w-sm">
-                    <div className="text-center mb-6">
-                        <span className="text-xs tracking-widest text-[#E08A3E] font-bold uppercase mb-1 block">
-                            Únete a nosotros
-                        </span>
-                        <h2 className="text-3xl font-extrabold tracking-tight">
-                            Crear Cuenta
-                        </h2>
-                        <p className="text-gray-400 text-xs mt-1">
-                            Registro para clientes
-                        </p>
-                    </div>
-
-                    {errorMsg && (
-                        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 text-red-300 text-xs rounded-xl text-center">
-                            {errorMsg}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                                Nombre Completo
-                            </label>
-                            <div className="relative flex items-center">
-                                <User className="absolute left-3 text-gray-400" size={18} />
-                                <input
-                                    type="text"
-                                    name="nombreCompleto"
-                                    required
-                                    placeholder="Tu nombre completo"
-                                    value={formData.nombreCompleto}
-                                    onChange={handleChange}
-                                    className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                                Correo Electrónico
-                            </label>
-                            <div className="relative flex items-center">
-                                <Mail className="absolute left-3 text-gray-400" size={18} />
-                                <input
-                                    type="email"
-                                    name="email"
-                                    required
-                                    placeholder="tu@correo.com"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                                Teléfono de Contacto
-                            </label>
-                            <div className="relative flex items-center">
-                                <Phone className="absolute left-3 text-gray-400" size={18} />
-                                <input
-                                    type="tel"
-                                    name="telefono"
-                                    required
-                                    placeholder="+52 231 000 0000"
-                                    value={formData.telefono}
-                                    onChange={handleChange}
-                                    className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                                Contraseña
-                            </label>
-                            <div className="relative flex items-center">
-                                <Lock className="absolute left-3 text-gray-400" size={18} />
-                                <input
-                                    type="password"
-                                    name="password"
-                                    required
-                                    placeholder="••••••••"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="w-full py-3 pl-10 pr-4 bg-[#1A251D] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm placeholder-gray-500 transition-colors"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full mt-2 py-3 px-6 bg-[#E08A3E] hover:bg-[#c9762e] disabled:bg-gray-600 text-[#111713] font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer"
-                        >
-                            <UserPlus size={18} />
-                            <span>{loading ? 'Creando cuenta...' : 'Registrarse'}</span>
-                        </button>
-                    </form>
-
-                    <p className="text-center text-xs text-gray-400 mt-6">
-                        ¿Ya tienes una cuenta?{' '}
-                        <Link to="/login" className="text-[#E08A3E] font-semibold hover:underline">
-                            Inicia sesión
-                        </Link>
-                    </p>
-                </div>
-            </main>
-
-            <footer className="relative z-10 p-4"></footer>
+        {/* Encabezado con el Mapache */}
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg shadow-black/30">
+            🦝
+          </div>
+          <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
+            El Mapache Bigotón
+          </span>
+          <h2 className="text-3xl font-black text-white mt-1">Crear Cuenta</h2>
+          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+            Únete a BarberApp para agendar tus turnos y administrar tu estilo.
+          </p>
         </div>
-    );
+
+        {/* Alertas */}
+        {errorMsg && (
+          <div className="mb-5 p-3.5 bg-red-950/70 border border-red-800 text-red-300 text-xs rounded-2xl text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        {exitoMsg && (
+          <div className="mb-5 p-3.5 bg-green-950/70 border border-green-800 text-green-300 text-xs rounded-2xl text-center flex items-center justify-center gap-2">
+            <CheckCircle2 size={16} /> {exitoMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-300 mb-1.5">Nombre Completo</label>
+            <div className="relative">
+              <User className="absolute left-3.5 top-3 text-gray-500" size={16} />
+              <input
+                type="text"
+                name="nombre_completo"
+                required
+                value={formData.nombre_completo}
+                onChange={handleChange}
+                placeholder="Ej. Luis Ángel Julio"
+                className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-[#ea8536] outline-none transition"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Correo Electrónico</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3 text-gray-500" size={16} />
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="ejemplo@correo.com"
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-[#ea8536] outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Teléfono</label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-3 text-gray-500" size={16} />
+                <input
+                  type="tel"
+                  name="telefono"
+                  required
+                  value={formData.telefono}
+                  onChange={handleChange}
+                  placeholder="+52 231 000 0000"
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-[#ea8536] outline-none transition"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Contraseña</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-3 text-gray-500" size={16} />
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-[#ea8536] outline-none transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Confirmar Contraseña</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-3 text-gray-500" size={16} />
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-gray-600 focus:border-[#ea8536] outline-none transition"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-4 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-black py-3 rounded-xl text-xs transition duration-200 flex items-center justify-center gap-2 shadow-lg shadow-black/30"
+          >
+            {loading ? 'Registrando cuenta...' : (
+              <>
+                <UserPlus size={16} /> Registrarme
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-gray-500 mt-6">
+          ¿Ya tienes una cuenta?{' '}
+          <Link to="/iniciar-sesion" className="text-[#ea8536] font-bold hover:underline">
+            Inicia sesión aquí
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
 }

@@ -1,44 +1,25 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-@EqualsAndHashCode(callSuper = true)
-@PrimaryKeyJoinColumn(name = "id_usuario") // Coincide con la columna FK de MySQL
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
 @Table(name = "cliente")
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Cliente extends Usuario {
+public class Cliente {
+
+    @Id
+    @Column(name = "id_usuario")
+    private Long idUsuario;
+
+    @Column(name = "id_barbero")
+    private Long idBarbero;
 
     @Lob
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;
-
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<Turno> turnos = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.EAGER, optional = true)
-    @JoinColumn(name = "id_barbero", nullable = true)
-    @JsonIgnoreProperties({"turnos", "disponatributos", "password"})
-    private Barbero barbero;
-
-    public Long getIdCliente() {
-        return this.getIdUsuario();
-    }
-
-    public void setIdCliente(Long id) {
-        this.setIdUsuario(id);
-    }
 }

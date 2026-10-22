@@ -1,86 +1,77 @@
 package tecnm.equipo4.barberoApi.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.UriComponentsBuilder;
-import tecnm.equipo4.barberoApi.models.Barbero;
 import tecnm.equipo4.barberoApi.models.Cliente;
-import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
 import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 
-import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
+@RequestMapping("/api/clientes")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
-@RequestMapping("/cliente")
-@CrossOrigin(origins = "*")
 public class ClienteController {
 
     private final ClienteRepository clienteRepository;
-    private final BarberoRepository barberoRepository;
 
+    // 1. Obtener todos los clientes usando Iterable
     @GetMapping
-    public ResponseEntity<Iterable<Cliente>> findAll() {
+    public ResponseEntity<Iterable<Cliente>> listarClientes() {
         return ResponseEntity.ok(clienteRepository.findAll());
     }
 
-    @GetMapping("/{idCliente}")
-    public ResponseEntity<Cliente> findById(@PathVariable Long idCliente) {
-        Optional<Cliente> clienteOptional = clienteRepository.findById(idCliente);
-        return clienteOptional.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    // 2. Obtener un cliente por su id_usuario
+    @GetMapping("/{idUsuario}")
+    public ResponseEntity<?> obtenerClientePorId(@PathVariable Long idUsuario) {
+        Optional<Cliente> clienteOpt = clienteRepository.findById(idUsuario);
+        if (clienteOpt.isPresent()) {
+            Cliente cliente = clienteOpt.get();
+            String fotoBase64 = (cliente.getFoto() != null) ? new String(cliente.getFoto()) : "";
+
+            return ResponseEntity.ok(Map.of(
+                "id_usuario", cliente.getIdUsuario(),
+                "id_barbero", cliente.getIdBarbero() != null ? cliente.getIdBarbero() : 0,
+                "foto", fotoBase64
+            ));
+        }
+        return ResponseEntity.notFound().build();
     }
 
+    // 3. Crear cliente
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Cliente newCliente, UriComponentsBuilder ucb) {
-        try {
-            if (newCliente.getTipoUsuario() == null || newCliente.getTipoUsuario().trim().isEmpty()) {
-                newCliente.setTipoUsuario("CLIENTE");
-            }
-
-            if (newCliente.getPerfil() == null || newCliente.getPerfil().trim().isEmpty()) {
-                newCliente.setPerfil("CLIENTE");
-            }
-
-            if (newCliente.getBarbero() == null) {
-                Optional<Barbero> defaultBarbero = barberoRepository.findById(1L);
-                defaultBarbero.ifPresent(newCliente::setBarbero);
-            }
-
-            Cliente savedCliente = clienteRepository.save(newCliente);
-
-            URI uri = ucb.path("/cliente/{idCliente}")
-                    .buildAndExpand(savedCliente.getIdCliente())
-                    .toUri();
-
-            return ResponseEntity.created(uri).body(savedCliente);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al crear el cliente: " + e.getMessage());
-        }
+    public ResponseEntity<Cliente> crearCliente(@RequestBody Cliente cliente) {
+        return ResponseEntity.ok(clienteRepository.save(cliente));
     }
 
-    @PutMapping("/{idCliente}")
-    public ResponseEntity<?> update(@PathVariable Long idCliente, @RequestBody Cliente putCliente) {
-        Optional<Cliente> clienteAnt = clienteRepository.findById(idCliente);
-        if (clienteAnt.isPresent()) {
-            putCliente.setIdCliente(idCliente);
-            clienteRepository.save(putCliente);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
-    }
+    // 4. Actualizar cliente o foto
+    @PutMapping("/{idUsuario}")
+    public ResponseEntity<?> actualizarCliente(@PathVariable Long idUsuario, @RequestBody Map<String, Object> payload) {
+        Optional<Cliente> clienteOpt = clienteRepository.findById(idUsuario);
 
-    @DeleteMapping("/{idCliente}")
-    public ResponseEntity<?> delete(@PathVariable Long idCliente) {
-        if (clienteRepository.findById(idCliente).isPresent()) {
-            clienteRepository.deleteById(idCliente);
-            return ResponseEntity.ok().build();
+        Cliente cliente = clienteOpt.orElseGet(() -> {
+            Cliente nuevo = new Cliente();
+            nuevo.setIdUsuario(idUsuario);
+            return nuevo;
+        });
+
+        if (payload.containsKey("id_barbero") && payload.get("id_barbero") != null) {
+            cliente.setIdBarbero(Long.valueOf(payload.get("id_barbero").toString()));
         }
-        return ResponseEntity.notFound().build();
+
+        if (payload.containsKey("foto") && payload.get("foto") != null) {
+            String fotoStr = (String) payload.get("foto");
+            cliente.setFoto(fotoStr.getBytes());
+        }
+
+        Cliente guardado = clienteRepository.save(cliente);
+
+        return ResponseEntity.ok(Map.of(
+            "id_usuario", guardado.getIdUsuario(),
+            "id_barbero", guardado.getIdBarbero() != null ? guardado.getIdBarbero() : 0,
+            "mensaje", "Cliente actualizado correctamente"
+        ));
     }
 }

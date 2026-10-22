@@ -8,6 +8,7 @@ import Registro from './paginas/publica/registro';
 import InicioCliente from './paginas/cliente/inicioCliente';
 import RegistroCita from './paginas/cliente/registroCita';
 import HistorialCliente from './paginas/cliente/historialCliente';
+import ConfiguracionCliente from './paginas/cliente/configuracionCliente';
 
 export default function App() {
   return (
@@ -17,10 +18,11 @@ export default function App() {
         <Route path="/iniciar-sesion" element={<InicioSesion />} />
         <Route path="/registro" element={<Registro />} />
 
-        {/* Panel y acciones del cliente */}
+        {/* Módulo Cliente */}
         <Route path="/cliente" element={<InicioCliente />} />
         <Route path="/cliente/agendar" element={<RegistroCita />} />
         <Route path="/cliente/historial" element={<HistorialCliente />} />
+        <Route path="/cliente/configuracion" element={<ConfiguracionCliente />} />
 
         <Route path="*" element={<Navigate to="/iniciar-sesion" replace />} />
       </Routes>
