@@ -37,55 +37,44 @@ export default function InicioSesion() {
       if (response.ok) {
         const data = await response.json();
 
+        // Detectar si es BARBERO según las columnas de MySQL (tipo_usuario o perfil)
+        const rolUsuario = (data.tipo_usuario || data.tipoUsuario || data.perfil || 'CLIENTE').toUpperCase();
+
         const sesionUsuario = {
           id_usuario: data.id_usuario || data.idUsuario || data.id,
-          nombre_completo: data.nombre_completo || data.nombreCompleto || data.nombre || 'Cliente',
+          nombre_completo: data.nombre_completo || data.nombreCompleto || data.nombre || 'Usuario',
           email: data.email,
           telefono: data.telefono || '',
-          tipo_usuario: data.tipo_usuario || data.tipoUsuario || 'CLIENTE'
+          tipo_usuario: rolUsuario
         };
 
         localStorage.setItem('usuario', JSON.stringify(sesionUsuario));
-        navigate('/cliente');
+
+        // Redirección condicionada
+        if (rolUsuario === 'BARBERO') {
+          navigate('/barbero');
+        } else {
+          navigate('/cliente');
+        }
       } else {
         setErrorMsg('Correo o contraseña incorrectos.');
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('Error de conexión con el servidor backend.');
+      setErrorMsg('Error al conectar con el servidor backend.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative w-full min-h-screen bg-[#111613] text-gray-200 flex items-center justify-center p-6 overflow-hidden select-none font-sans">
+    <div className="min-h-screen bg-[#111613] text-gray-200 flex items-center justify-center p-6 font-sans relative overflow-hidden select-none">
       
-      {/* CÍRCULO SUPERIOR DERECHO (Ambient shape de Figma: verde oliva visible) */}
-      <div 
-        className="absolute -top-32 -right-24 w-[650px] h-[650px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(34, 54, 40, 0.85) 0%, rgba(24, 38, 28, 0.45) 50%, transparent 75%)'
-        }}
-      />
+      {/* Círculos sólidos de fondo Figma */}
+      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
 
-      {/* CÍRCULO LATERAL IZQUIERDO (Accent shape de Figma) */}
-      <div 
-        className="absolute top-1/3 -left-40 w-[550px] h-[550px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(28, 46, 34, 0.80) 0%, rgba(18, 30, 22, 0.40) 50%, transparent 75%)'
-        }}
-      />
-
-      {/* CÍRCULO INFERIOR DERECHO */}
-      <div 
-        className="absolute -bottom-40 right-1/4 w-[480px] h-[480px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(24, 40, 29, 0.70) 0%, transparent 70%)'
-        }}
-      />
-
-      {/* TARJETA PRINCIPAL FIGMA */}
+      {/* Contenedor tipo Tarjeta Login */}
       <div className="w-full max-w-md bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md relative z-10">
         
         <Link 
@@ -95,7 +84,6 @@ export default function InicioSesion() {
           <ArrowLeft size={14} /> Volver al inicio
         </Link>
 
-        {/* Logo / Badge del Mapache idéntico a Figma */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg shadow-black/30">
             🦝

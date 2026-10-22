@@ -1,46 +1,27 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-@EqualsAndHashCode(callSuper = true)
-@PrimaryKeyJoinColumn(name = "idUsuario")
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
 @Table(name = "barbero")
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Barbero extends Usuario {
+public class Barbero {
 
-    @Column(nullable = false)
-    private int experiencia;
+    @Id
+    @Column(name = "id_barbero")
+    private Long idBarbero;
 
-    @Column(nullable = false)
+    @Column(name = "id_usuario")
+    private Long idUsuario;
+
+    @Column(name = "experiencia")
+    private Integer experiencia;
+
+    @Column(name = "titulo_rol")
     private String tituloRol;
-
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<Turno> turnos = new ArrayList<>();
-
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
-
-    @JsonIgnore
-    public Long getIdBarbero() {
-        return this.getIdUsuario();
-    }
-
-    public void setIdBarbero(Long id) {
-        this.setIdUsuario(id);
-    }
 }

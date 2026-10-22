@@ -26,9 +26,14 @@ export default function InicioCliente() {
       return;
     }
 
+    if (usuario.tipo_usuario === 'BARBERO') {
+      navigate('/barbero');
+      return;
+    }
+
     cargarTurnos(usuario.id_usuario);
     cargarFotoPerfil(usuario.id_usuario);
-  }, []);
+  }, [usuario, navigate]);
 
   const cargarTurnos = async (idUsuario) => {
     try {
@@ -115,34 +120,12 @@ export default function InicioCliente() {
   const infoFecha = proximoTurno ? obtenerTextoFechaTurno(proximoTurno.fecha, proximoTurno.horaInicio) : null;
 
   return (
-    <div className="min-h-screen bg-[#0e130f] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
+    <div className="min-h-screen bg-[#111613] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
       
-      {/* CÍRCULOS DE FONDO EXACTOS DE FIGMA (Ambient shape & Accent shape) */}
-      {/* 1. Círculo superior derecho amplio (Ambient shape de Figma) */}
-      <div 
-        className="absolute -top-40 -right-20 w-[680px] h-[680px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(38, 59, 45, 0.45) 0%, rgba(26, 40, 31, 0.25) 55%, transparent 75%)'
-        }}
-      />
-      
-      {/* 2. Círculo lateral izquierdo medio (Accent shape de Figma) */}
-      <div 
-        className="absolute top-1/4 -left-48 w-[580px] h-[580px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(30, 48, 36, 0.40) 0%, rgba(20, 32, 24, 0.20) 55%, transparent 75%)'
-        }}
-      />
+      {/* Círculos sólidos de Figma */}
+      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
 
-      {/* 3. Círculo inferior decorativo para profundidad */}
-      <div 
-        className="absolute -bottom-48 right-1/4 w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, rgba(28, 44, 34, 0.35) 0%, transparent 70%)'
-        }}
-      />
-
-      {/* HEADER FIGMA */}
       <header className="flex justify-between items-center mb-10 relative z-10 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
@@ -166,10 +149,8 @@ export default function InicioCliente() {
         </button>
       </header>
 
-      {/* CONTENEDOR PRINCIPAL */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
         
-        {/* COLUMNA IZQUIERDA: CONTENIDO PRINCIPAL */}
         <div className="lg:col-span-8 space-y-6">
           <section>
             <span className="text-[11px] font-extrabold text-[#d97706] tracking-wider uppercase block mb-1">
@@ -183,8 +164,7 @@ export default function InicioCliente() {
             </p>
           </section>
 
-          {/* TARJETA PRÓXIMO TURNO */}
-          <div className="bg-[#18211b]/90 border border-[#25332a] rounded-3xl p-7 backdrop-blur-md shadow-2xl">
+          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 backdrop-blur-md shadow-2xl">
             <div className="flex justify-between items-center mb-5">
               <span className="text-[10px] font-black tracking-widest uppercase text-[#d97706]">
                 Próximo Turno
@@ -204,15 +184,25 @@ export default function InicioCliente() {
                 
                 <div className="bg-[#1e2a22] border border-[#2e3e33] p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-13 h-13 rounded-2xl overflow-hidden bg-[#2a3a30] border border-[#3b4f42] flex items-center justify-center shadow-inner">
-                      <span className="text-3xl">🧔🏻</span>
+                    <div className="w-13 h-13 rounded-2xl overflow-hidden bg-[#2a3a30] border-2 border-[#ea8536] flex items-center justify-center shadow-inner flex-shrink-0">
+                      {usuario?.foto ? (
+                        <img 
+                          src={usuario.foto} 
+                          alt={nombreCliente} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-base font-black text-white">
+                          {inicialCliente}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <h4 className="font-bold text-base text-white tracking-wide">
                         {proximoTurno.notasCliente || 'Corte clásico + barba'}
                       </h4>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Con Bruno • {proximoTurno.sucursal || 'BarberApp Centro'} • 45 min
+                        Con {proximoTurno.nombreBarbero || 'tu barbero'} • {proximoTurno.sucursal || 'BarberApp Centro'} • 45 min
                       </p>
                     </div>
                   </div>
@@ -255,7 +245,6 @@ export default function InicioCliente() {
             )}
           </div>
 
-          {/* ACCESOS RÁPIDOS */}
           <div>
             <div className="flex justify-between items-center mb-3">
               <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider">
@@ -301,9 +290,8 @@ export default function InicioCliente() {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: NAVEGACIÓN Y RESUMEN */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-[#18211b]/90 border border-[#25332a] rounded-3xl p-6 shadow-xl backdrop-blur-md">
+          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-6 shadow-xl backdrop-blur-md">
             <div className="flex justify-between items-center mb-5">
               <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider">
                 Navegación
@@ -359,7 +347,7 @@ export default function InicioCliente() {
             </nav>
           </div>
 
-          <div className="bg-[#18211b]/90 border border-[#25332a] rounded-3xl p-6 shadow-xl backdrop-blur-md">
+          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-6 shadow-xl backdrop-blur-md">
             <div className="flex justify-between items-center mb-5">
               <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider">
                 Resumen

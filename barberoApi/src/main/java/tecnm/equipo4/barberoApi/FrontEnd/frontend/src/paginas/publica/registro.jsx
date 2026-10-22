@@ -43,7 +43,6 @@ export default function Registro() {
 
     setLoading(true);
 
-    // Mapeo exacto con las columnas de la tabla usuario en MySQL
     const bodyUsuario = {
       nombreCompleto: formData.nombre_completo,
       email: formData.email,
@@ -66,7 +65,6 @@ export default function Registro() {
           navigate('/iniciar-sesion');
         }, 1500);
       } else {
-        const errorData = await response.text();
         setErrorMsg('No se pudo completar el registro. Verifica los datos ingresados.');
       }
     } catch (err) {
@@ -80,9 +78,9 @@ export default function Registro() {
   return (
     <div className="min-h-screen bg-[#111613] text-gray-200 flex items-center justify-center p-6 font-sans relative overflow-hidden select-none">
       
-      {/* Luces y formas difuminadas de fondo de Figma */}
-      <div className="absolute -top-32 -right-24 w-[650px] h-[650px] bg-[#1a2d21]/60 rounded-full blur-[130px] pointer-events-none"></div>
-      <div className="absolute -bottom-32 -left-24 w-[550px] h-[550px] bg-[#122018]/50 rounded-full blur-[140px] pointer-events-none"></div>
+      {/* CÍRCULOS SÓLIDOS DE FIGMA (Mismo diseño exacto que la bienvenida y el login) */}
+      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
 
       {/* Contenedor tipo Tarjeta Figma */}
       <div className="w-full max-w-lg bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md relative z-10">

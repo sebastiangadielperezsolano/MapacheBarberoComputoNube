@@ -1,90 +1,96 @@
 package tecnm.equipo4.barberoApi.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.util.UriComponentsBuilder;
 import tecnm.equipo4.barberoApi.models.Barbero;
+import tecnm.equipo4.barberoApi.models.Turno;
+import tecnm.equipo4.barberoApi.models.Usuario;
 import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
+import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
+import tecnm.equipo4.barberoApi.repositories.UsuarioRepository;
 
-import java.net.URI;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
+@RequestMapping("/api/barberos")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
-@RequestMapping("/barbero")
-@CrossOrigin(origins = "*")
 public class BarberoController {
 
+    private final UsuarioRepository usuarioRepository;
     private final BarberoRepository barberoRepository;
+    private final TurnoRepository turnoRepository;
 
-    // Consultar todos los barberos
     @GetMapping
-    public ResponseEntity<?> findAll() {
-        try {
-            Iterable<Barbero> barberos = barberoRepository.findAll();
-            return ResponseEntity.ok(barberos);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al consultar barberos: " + e.getMessage());
+    public ResponseEntity<List<Map<String, Object>>> listarBarberosCompletos() {
+        List<Usuario> usuariosBarberos = usuarioRepository.findAll().stream()
+                .filter(u -> "BARBERO".equalsIgnoreCase(u.getTipoUsuario()) || "BARBERO".equalsIgnoreCase(u.getPerfil()))
+                .toList();
+
+        List<Map<String, Object>> resultado = new ArrayList<>();
+        for (Usuario u : usuariosBarberos) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("idBarbero", u.getIdUsuario());
+            map.put("nombreCompleto", u.getNombreCompleto());
+            map.put("email", u.getEmail());
+            map.put("telefono", u.getTelefono() != null ? u.getTelefono() : "");
+
+            Optional<Barbero> bOpt = barberoRepository.findById(u.getIdUsuario());
+            map.put("experiencia", bOpt.map(Barbero::getExperiencia).orElse(1));
+            map.put("tituloRol", bOpt.map(Barbero::getTituloRol).orElse("Barbero Profesional"));
+
+            resultado.add(map);
         }
+
+        return ResponseEntity.ok(resultado);
     }
 
-    // Consultar barbero por ID
-    @GetMapping("/{idBarbero}")
-    public ResponseEntity<Barbero> findById(@PathVariable Long idBarbero) {
-        Optional<Barbero> barberoOptional = barberoRepository.findById(idBarbero);
-        return barberoOptional.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    //Crear un nuevo barbero
-    @PostMapping
-    public ResponseEntity<?> create(@RequestBody Barbero newBarbero, UriComponentsBuilder ucb) {
+    @PostMapping("/registro")
+    public ResponseEntity<?> registrarBarbero(@RequestBody Map<String, Object> payload) {
         try {
-            // Asigna el rol correspondiente si la clase base Usuario lo requiere
-            if (newBarbero.getTipoUsuario() == null) {
-                newBarbero.setTipoUsuario("BARBERO");
+            String email = (String) payload.get("email");
+
+            Optional<Usuario> existenteOpt = usuarioRepository.findByEmail(email);
+            Usuario usuario = existenteOpt.orElseGet(Usuario::new);
+
+            usuario.setNombreCompleto((String) payload.get("nombreCompleto"));
+            usuario.setEmail(email);
+            usuario.setTelefono((String) payload.get("telefono"));
+            usuario.setPassword((String) payload.get("password"));
+            usuario.setPerfil("BARBERO");
+            usuario.setTipoUsuario("BARBERO");
+
+            Usuario usuarioGuardado = usuarioRepository.save(usuario);
+
+            int experiencia = 1;
+            if (payload.containsKey("experiencia") && payload.get("experiencia") != null) {
+                try {
+                    experiencia = Integer.parseInt(payload.get("experiencia").toString());
+                } catch (Exception ignored) {}
             }
+            String tituloRol = payload.getOrDefault("tituloRol", "Master Barber").toString();
 
-            Barbero savedBarbero = barberoRepository.save(newBarbero);
+            barberoRepository.registrarOActualizarBarbero(usuarioGuardado.getIdUsuario(), experiencia, tituloRol);
 
-            URI uri = ucb.path("/barbero/{idBarbero}")
-                    .buildAndExpand(savedBarbero.getIdBarbero())
-                    .toUri();
+            return ResponseEntity.ok(Map.of(
+                "id_usuario", usuarioGuardado.getIdUsuario(),
+                "nombre_completo", usuarioGuardado.getNombreCompleto(),
+                "email", usuarioGuardado.getEmail(),
+                "tipo_usuario", "BARBERO",
+                "mensaje", "Barbero registrado y activado con éxito"
+            ));
 
-            return ResponseEntity.created(uri).body(savedBarbero);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al crear el barbero: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Error al registrar barbero: " + e.getMessage());
         }
     }
 
-    // Actualizar un barbero existente
-    @PutMapping("/{idBarbero}")
-    public ResponseEntity<Void> update(@PathVariable Long idBarbero, @RequestBody Barbero putBarbero) {
-        Optional<Barbero> barberoAnt = barberoRepository.findById(idBarbero);
-
-        // Corregido: Debe ser isPresent() para actualizar
-        if (barberoAnt.isPresent()) {
-            putBarbero.setIdBarbero(idBarbero);
-            barberoRepository.save(putBarbero);
-            return ResponseEntity.noContent().build();
-        }
-
-        return ResponseEntity.notFound().build();
-    }
-
-    // Eliminar un barbero
-    @DeleteMapping("/{idBarbero}")
-    public ResponseEntity<Void> delete(@PathVariable Long idBarbero) {
-        if (barberoRepository.findById(idBarbero).isPresent()) {
-            barberoRepository.deleteById(idBarbero);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+    @GetMapping("/{idBarbero}/turnos")
+    public ResponseEntity<List<Turno>> obtenerTurnosBarbero(@PathVariable Long idBarbero) {
+        return ResponseEntity.ok(turnoRepository.findAll().stream()
+                .filter(t -> t.getIdBarbero() != null && t.getIdBarbero().equals(idBarbero))
+                .toList());
     }
 }

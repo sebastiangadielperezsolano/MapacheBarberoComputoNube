@@ -8,6 +8,7 @@ import tecnm.equipo4.barberoApi.models.Usuario;
 import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 import tecnm.equipo4.barberoApi.repositories.UsuarioRepository;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,6 +21,50 @@ public class UsuarioController {
     private final UsuarioRepository usuarioRepository;
     private final ClienteRepository clienteRepository;
 
+    // 1. REGISTRO DE CLIENTES
+    @PostMapping("/registro")
+    public ResponseEntity<?> registrarCliente(@RequestBody Map<String, Object> payload) {
+        try {
+            String email = (String) payload.get("email");
+
+            if (usuarioRepository.findByEmail(email).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of("mensaje", "El correo ya está registrado"));
+            }
+
+            Usuario usuario = new Usuario();
+            usuario.setNombreCompleto((String) payload.getOrDefault("nombreCompleto", payload.get("nombre_completo")));
+            usuario.setEmail(email);
+            usuario.setTelefono((String) payload.get("telefono"));
+            usuario.setPassword((String) payload.get("password"));
+            usuario.setPerfil("CLIENTE");
+            usuario.setTipoUsuario("CLIENTE");
+
+            Usuario usuarioGuardado = usuarioRepository.save(usuario);
+
+            // Inicializar en la tabla cliente
+            try {
+                Cliente cliente = new Cliente();
+                cliente.setIdUsuario(usuarioGuardado.getIdUsuario());
+                cliente.setIdBarbero(2L); // Barbero por defecto (Bruno)
+                clienteRepository.save(cliente);
+            } catch (Exception exCliente) {
+                System.out.println("Aviso al crear entidad cliente: " + exCliente.getMessage());
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "id_usuario", usuarioGuardado.getIdUsuario(),
+                "nombre_completo", usuarioGuardado.getNombreCompleto(),
+                "email", usuarioGuardado.getEmail(),
+                "tipo_usuario", "CLIENTE",
+                "mensaje", "Cliente registrado exitosamente"
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("mensaje", "Error interno al registrar cliente: " + e.getMessage()));
+        }
+    }
+
+    // 2. INICIO DE SESIÓN
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credenciales) {
         String email = credenciales.get("email");
@@ -40,25 +85,23 @@ public class UsuarioController {
         return ResponseEntity.status(401).body(Map.of("mensaje", "Credenciales incorrectas"));
     }
 
-    @PostMapping("/registro")
-    public ResponseEntity<?> registro(@RequestBody Usuario usuario) {
-        if (usuario.getTipoUsuario() == null || usuario.getTipoUsuario().isEmpty()) {
-            usuario.setTipoUsuario("CLIENTE");
-        }
-        if (usuario.getPerfil() == null || usuario.getPerfil().isEmpty()) {
-            usuario.setPerfil("CLIENTE");
-        }
-        Usuario nuevoUsuario = usuarioRepository.save(usuario);
-
-        if ("CLIENTE".equalsIgnoreCase(nuevoUsuario.getTipoUsuario())) {
-            Cliente nuevoCliente = new Cliente();
-            nuevoCliente.setIdUsuario(nuevoUsuario.getIdUsuario());
-            clienteRepository.save(nuevoCliente);
-        }
-
-        return ResponseEntity.ok(nuevoUsuario);
+    // 3. LISTAR CLIENTES
+    @GetMapping("/clientes")
+    public ResponseEntity<List<Usuario>> listarClientes() {
+        return ResponseEntity.ok(usuarioRepository.findAll().stream()
+                .filter(u -> "CLIENTE".equalsIgnoreCase(u.getTipoUsuario()) || "CLIENTE".equalsIgnoreCase(u.getPerfil()))
+                .toList());
     }
 
+    // 4. LISTAR BARBEROS
+    @GetMapping("/barberos")
+    public ResponseEntity<List<Usuario>> listarBarberos() {
+        return ResponseEntity.ok(usuarioRepository.findAll().stream()
+                .filter(u -> "BARBERO".equalsIgnoreCase(u.getTipoUsuario()) || "BARBERO".equalsIgnoreCase(u.getPerfil()))
+                .toList());
+    }
+
+    // 5. OBTENER USUARIO POR ID
     @GetMapping("/{id}")
     public ResponseEntity<?> obtenerUsuario(@PathVariable Long id) {
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
@@ -83,6 +126,7 @@ public class UsuarioController {
         return ResponseEntity.notFound().build();
     }
 
+    // 6. ACTUALIZAR PERFIL Y FOTO
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
@@ -110,6 +154,7 @@ public class UsuarioController {
             Cliente c = clienteRepository.findById(id).orElseGet(() -> {
                 Cliente nuevo = new Cliente();
                 nuevo.setIdUsuario(id);
+                nuevo.setIdBarbero(2L);
                 return nuevo;
             });
             c.setFoto(fotoStr.getBytes());
