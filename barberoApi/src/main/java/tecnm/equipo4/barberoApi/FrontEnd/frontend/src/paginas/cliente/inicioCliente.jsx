@@ -13,11 +13,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 export default function ClienteDashboard() {
+    
     const navigate = useNavigate();
 
     const handleLogout = () => {
         navigate('/login');
     };
+    
 
     return (
         <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">

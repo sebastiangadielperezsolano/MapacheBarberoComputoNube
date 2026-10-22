@@ -6,7 +6,6 @@ import InicioCliente from './paginas/cliente/inicioCliente';
 import RegistroC from './paginas/cliente/registroCita';
 import InicioBarbero from './paginas/barbero/inicioBarbero';
 import RegistroB from './paginas/barbero/registroBarbero';
-//Ya callate wicho
 
 function App() {
     return (

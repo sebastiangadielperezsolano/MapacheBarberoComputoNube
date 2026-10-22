@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LogIn, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
-const API_URL = 'http://localhost:8080';
+const API_URL = 'http://localhost:8081';
 
 export default function InicioSesion() {
     const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function InicioSesion() {
 
             if (response.ok) {
                 const usuarioValido = await response.json();
-
+                
                 localStorage.setItem('usuarioSesion', JSON.stringify(usuarioValido));
 
                 if (usuarioValido.tipoUsuario === 'BARBERO' || usuarioValido.perfil === 'BARBERO') {
