@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserPlus, User, Mail, Lock, Phone, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
-const API_URL = 'http://localhost:8081';
+const API_URL = 'http://localhost:8080';
 
 export default function RegistroCliente() {
     const navigate = useNavigate();

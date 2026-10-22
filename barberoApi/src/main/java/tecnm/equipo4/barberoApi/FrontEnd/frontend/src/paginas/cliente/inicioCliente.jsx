@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, History, CreditCard, Settings, LogOut, Home } from 'lucide-react';
+import {
+  Home,
+  Calendar,
+  Heart,
+  History,
+  CreditCard,
+  Settings,
+  LogOut,
+  Plus,
+  Scissors
+} from 'lucide-react';
 
-const API_BASE = 'http://localhost:8081/api';
+const API_BASE = 'http://localhost:8080';
 
 export default function InicioCliente() {
   const navigate = useNavigate();
 
-  // 1. Obtener la sesión real del usuario logueado
   const [usuario] = useState(() => {
     try {
-      const sesion = localStorage.getItem('usuario');
+      const sesion = localStorage.getItem('usuarioSesion') || localStorage.getItem('usuario');
       return sesion ? JSON.parse(sesion) : null;
     } catch {
       return null;
@@ -20,42 +29,76 @@ export default function InicioCliente() {
   const [turnos, setTurnos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
+  const idCliente = usuario?.idUsuario || usuario?.idCliente || usuario?.id_usuario;
+
+  const emailUsuario = (usuario?.email || usuario?.usuario?.email || '').toLowerCase();
+  const avatarsGuardados = JSON.parse(localStorage.getItem('avatars_usuarios') || '{}');
+  const fotoCliente = avatarsGuardados[emailUsuario] || usuario?.avatar || usuario?.foto || '/defecto.png';
+
   useEffect(() => {
-    if (!usuario || !usuario.id_usuario) {
+    if (!usuario || !idCliente) {
+      localStorage.removeItem('usuarioSesion');
       localStorage.removeItem('usuario');
-      navigate('/iniciar-sesion');
+      navigate('/login');
       return;
     }
 
-    cargarTurnos(usuario.id_usuario);
+    cargarTurnos();
   }, []);
 
-  const cargarTurnos = async (idUsuario) => {
-    try {
-      const res = await fetch(`${API_BASE}/turnos/cliente/${idUsuario}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTurnos(data);
+  const cargarTurnos = async () => {
+    setCargando(true);
+
+    const endpointsToTry = [
+      `${API_BASE}/api/turnos`,
+      `${API_BASE}/turnos`,
+      `${API_BASE}/api/turno`,
+      `${API_BASE}/turno`
+    ];
+
+    let data = null;
+
+    for (const url of endpointsToTry) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          data = await res.json();
+          break;
+        }
+      } catch (e) {
       }
-    } catch (err) {
-      console.error('Error al cargar turnos:', err);
-    } finally {
-      setCargando(false);
     }
+
+    if (Array.isArray(data)) {
+      const idSesionNum = Number(idCliente);
+
+      const misTurnos = data.filter(t => {
+        const idEnTurno = t.cliente?.idUsuario || t.cliente?.idCliente || t.idCliente;
+        return Number(idEnTurno) === idSesionNum;
+      });
+
+      misTurnos.sort((a, b) => (b.idTurno || 0) - (a.idTurno || 0));
+
+      setTurnos(misTurnos);
+    }
+
+    setCargando(false);
   };
 
   const handleCerrarSesion = () => {
+    localStorage.removeItem('usuarioSesion');
     localStorage.removeItem('usuario');
-    navigate('/iniciar-sesion');
+    navigate('/login');
   };
 
   const handleCancelarTurno = async (idTurno) => {
     if (!window.confirm('¿Deseas cancelar esta cita?')) return;
+
     try {
-      const res = await fetch(`${API_BASE}/turnos/${idTurno}/cancelar`, { method: 'PUT' });
+      const res = await fetch(`${API_BASE}/api/turnos/${idTurno}`, { method: 'DELETE' });
       if (res.ok) {
         alert('Cita cancelada correctamente');
-        if (usuario?.id_usuario) cargarTurnos(usuario.id_usuario);
+        cargarTurnos();
       } else {
         alert('No se pudo cancelar la cita.');
       }
@@ -64,319 +107,304 @@ export default function InicioCliente() {
     }
   };
 
-  const nombreCliente = usuario?.nombre_completo || usuario?.nombreCompleto || 'Cliente';
-  const inicialCliente = (nombreCliente[0] || 'C').toUpperCase();
+  const nombreCliente = usuario?.nombreCompleto || usuario?.nombre_completo || 'Cliente';
+  const primerNombre = nombreCliente.split(' ')[0];
 
-  // Seleccionar el turno confirmado más próximo
-  const proximoTurno = turnos.find(t => t.estado === 'CONFIRMADO');
-  const turnosConfirmados = turnos.filter(t => t.estado === 'CONFIRMADO').length;
+  const proximoTurno = turnos.find(t => {
+    const estadoLimpio = (t.estado || '').toUpperCase();
+    return estadoLimpio !== 'CANCELADO' && estadoLimpio !== 'FINALIZADO' && estadoLimpio !== 'COMPLETADO';
+  });
 
-  // Formatear texto dinámico de la fecha de la cita
-  const obtenerTextoFechaTurno = (fechaStr, horaStr) => {
-    if (!fechaStr) return { encabezado: 'Turno programado', badge: '' };
-
-    const partes = fechaStr.split('-');
-    const fechaCita = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-    
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    const diferenciaMs = fechaCita.getTime() - hoy.getTime();
-    const diferenciaDias = Math.round(diferenciaMs / (1000 * 60 * 60 * 24));
-
-    const horaCorta = horaStr ? String(horaStr).substring(0, 5) : '';
-
-    if (diferenciaDias === 0) {
-      return {
-        encabezado: 'Confirmado para hoy',
-        badge: `Hoy - ${horaCorta}`
-      };
-    } else if (diferenciaDias === 1) {
-      return {
-        encabezado: 'Confirmado para mañana',
-        badge: `Mañana - ${horaCorta}`
-      };
-    } else if (diferenciaDias > 1) {
-      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      const dia = fechaCita.getDate();
-      const mes = meses[fechaCita.getMonth()];
-      const anio = fechaCita.getFullYear();
-
-      return {
-        encabezado: `Confirmado para el ${dia} de ${mes} de ${anio}`,
-        badge: `${fechaStr} - ${horaCorta}`
-      };
-    } else {
-      return {
-        encabezado: `Cita del ${fechaStr}`,
-        badge: `${fechaStr} - ${horaCorta}`
-      };
-    }
-  };
-
-  const infoFecha = proximoTurno ? obtenerTextoFechaTurno(proximoTurno.fecha, proximoTurno.horaInicio) : null;
+  const turnosEsteMes = turnos.filter(t => {
+    const estadoLimpio = (t.estado || '').toUpperCase();
+    return estadoLimpio === 'CONFIRMADO' || estadoLimpio === 'PENDIENTE';
+  }).length;
 
   return (
-    <div className="min-h-screen bg-[#0e1411] text-gray-200 p-8 font-sans relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-[#16291e]/40 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32"></div>
+      <div className="relative min-h-screen w-full bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-x-hidden flex flex-col justify-between">
+        <div className="absolute top-[-150px] right-[-150px] w-[700px] h-[700px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
-      {/* Header Superior */}
-      <header className="flex justify-between items-center mb-10 relative z-10 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-[#1b2b22] border border-gray-700 flex items-center justify-center text-lg shadow-inner">
-            🦝
-          </div>
-          <div className="leading-tight">
-            <span className="text-[10px] font-black tracking-widest text-[#d97706] block uppercase">
-              El Mapache Bigotón
-            </span>
-            <span className="text-lg font-bold text-white tracking-wide">
-              BarberApp
-            </span>
-          </div>
-        </div>
-
-        <button 
-          onClick={handleCerrarSesion}
-          className="flex items-center gap-1.5 bg-[#e07a1e] hover:bg-[#c96914] text-black font-bold px-4 py-1.5 rounded-lg text-xs transition duration-200 shadow-md"
-        >
-          <LogOut size={14} /> Salir
-        </button>
-      </header>
-
-      {/* Estructura Principal */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
-        
-        {/* Columna Izquierda */}
-        <div className="lg:col-span-8 space-y-6">
-          <section>
-            <span className="text-[11px] font-extrabold text-[#d97706] tracking-wider uppercase block mb-1">
-              El Mapache Bigotón
-            </span>
-            <h1 className="text-3xl font-extrabold text-white capitalize">
-              Hola, {nombreCliente}
-            </h1>
-            <p className="text-xs text-gray-400 mt-1 max-w-xl">
-              Tu próximo turno ya está confirmado. Revisa tu agenda, accede a tus servicios favoritos y administra tus pagos desde un solo lugar.
-            </p>
-          </section>
-
-          {/* Tarjeta Próximo Turno */}
-          <div className="bg-[#151d18]/90 border border-[#232f27] rounded-2xl p-6 backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-extrabold tracking-widest uppercase text-[#d97706]">
-                Próximo Turno
+        <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
+          <header className="flex justify-between items-center mb-8 w-full">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
+                <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
+              </div>
+              <div>
+              <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
+                EL MAPACHE BIGOTÓN
               </span>
-              {infoFecha && (
-                <span className="text-[11px] bg-[#1a251f] text-gray-300 font-medium px-3 py-1 rounded-full border border-gray-700">
-                  {infoFecha.badge}
-                </span>
-              )}
+                <h1 className="text-xl font-extrabold tracking-tight text-white leading-none">
+                  BarberApp
+                </h1>
+              </div>
             </div>
 
-            {proximoTurno ? (
-              <>
-                <h3 className="text-lg font-bold text-white mb-4">
-                  {infoFecha.encabezado}
-                </h3>
-                
-                <div className="bg-[#1c2620] border border-[#28372d] p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-700 flex items-center justify-center border border-gray-600">
-                      <span className="text-2xl">🧔🏻</span>
+            <button
+                onClick={handleCerrarSesion}
+                className="py-2.5 px-6 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-bold rounded-2xl transition-all cursor-pointer flex items-center gap-2 text-xs shadow-lg"
+            >
+              <LogOut size={15} />
+              <span>Salir</span>
+            </button>
+          </header>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full flex-1">
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              <section className="mb-2">
+              <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block mb-1">
+                EL MAPACHE BIGOTÓN
+              </span>
+                <h2 className="text-4xl font-black text-white tracking-tight">
+                  Hola, {primerNombre}
+                </h2>
+                <p className="text-xs text-gray-400 mt-1 max-w-xl">
+                  Tu próximo turno ya está registrado. Revisa tu agenda, accede a tus servicios favoritos y administra tus pagos desde un solo lugar.
+                </p>
+              </section>
+
+              <div className="bg-[#1A251D] border border-[#2D3E31] rounded-3xl p-6 shadow-2xl w-full">
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block">
+                    PRÓXIMO TURNO
+                  </span>
+                    <h3 className="text-xl font-extrabold text-white">
+                      {proximoTurno ? `${(proximoTurno.estado || 'CONFIRMADO').charAt(0).toUpperCase() + (proximoTurno.estado || 'CONFIRMADO').slice(1).toLowerCase()} para ${proximoTurno.fecha || 'hoy'}` : 'Sin turnos agendados'}
+                    </h3>
+                  </div>
+                  {proximoTurno && (
+                      <span className="text-xs bg-[#111713] text-gray-300 border border-[#2D3E31] px-4 py-1.5 rounded-full font-medium">
+                    {proximoTurno.fecha || 'Hoy'} · {proximoTurno.horaInicio || '18:30'}
+                  </span>
+                  )}
+                </div>
+
+                {cargando ? (
+                    <div className="text-center py-8 text-xs text-gray-400">Cargando la información de tus citas...</div>
+                ) : proximoTurno ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-2">
+                        <div className="flex items-center gap-4">
+                          <div
+                              onClick={() => navigate('/ajustesc')}
+                              className="w-14 h-14 rounded-2xl overflow-hidden bg-[#111713] border-2 border-[#E08A3E] flex-shrink-0 cursor-pointer"
+                          >
+                            <img
+                                src={fotoCliente}
+                                alt={nombreCliente}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.src = '/defecto.png'; }}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-extrabold text-xl text-white">
+                              {proximoTurno.servicio?.nombreServicio || proximoTurno.notasCliente || 'Corte clásico + barba'}
+                            </h4>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Con {proximoTurno.barbero?.nombreCompleto || 'Bruno'}
+                            </p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                              {proximoTurno.horaInicio || '18:30'} · {proximoTurno.sucursal || 'BarberApp Centro'} · {proximoTurno.servicio?.duracion || 45} min
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 w-full sm:w-auto justify-end">
+                          <button
+                              onClick={() => navigate('/historialC')}
+                              className="py-2.5 px-5 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-extrabold text-xs rounded-xl transition cursor-pointer shadow-md"
+                          >
+                            Ver turno
+                          </button>
+                          <button
+                              onClick={() => handleCancelarTurno(proximoTurno.idTurno)}
+                              className="py-2.5 px-5 bg-[#111713] hover:bg-[#18221c] text-gray-300 border border-[#2D3E31] text-xs font-semibold rounded-xl transition cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div className="bg-[#111713] border border-[#2D3E31] p-3.5 rounded-2xl">
+                          <span className="text-[10px] text-gray-500 font-medium block mb-1">Estado</span>
+                          <span className="text-xs font-bold text-white block">
+                        {(proximoTurno.estado || 'Confirmado').charAt(0).toUpperCase() + (proximoTurno.estado || 'Confirmado').slice(1).toLowerCase()}
+                      </span>
+                        </div>
+                        <div className="bg-[#111713] border border-[#2D3E31] p-3.5 rounded-2xl">
+                          <span className="text-[10px] text-gray-500 font-medium block mb-1">Pago</span>
+                          <span className="text-xs font-bold text-white block">Tarjeta terminada en 4242</span>
+                        </div>
+                        <div className="bg-[#111713] border border-[#2D3E31] p-3.5 rounded-2xl">
+                          <span className="text-[10px] text-gray-500 font-medium block mb-1">Llegada</span>
+                          <span className="text-xs font-bold text-white block">10 min antes</span>
+                        </div>
+                      </div>
                     </div>
+                ) : (
+                    <div className="text-center py-8 text-gray-400 text-xs flex flex-col items-center">
+                      <p className="mb-4">No tienes turnos programados en este momento.</p>
+                      <button
+                          onClick={() => navigate('/agendar')}
+                          className="py-2.5 px-5 bg-[#E08A3E] text-[#111713] font-extrabold rounded-xl text-xs hover:bg-[#c9762e] transition-all cursor-pointer"
+                      >
+                        + Agendar un turno ahora
+                      </button>
+                    </div>
+                )}
+              </div>
+
+              <div className="w-full">
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block">
+                    ACCESOS RÁPIDOS
+                  </span>
+                    <h3 className="text-xl font-extrabold text-white">Gestiona tu experiencia</h3>
+                  </div>
+                  <span className="text-[10px] text-gray-500">Última actualización hoy</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                  <div
+                      onClick={() => navigate('/agendar')}
+                      className="bg-[#1A251D] border border-[#2D3E31] hover:border-[#E08A3E] p-5 rounded-2xl cursor-pointer transition-colors shadow-lg flex flex-col justify-between"
+                  >
                     <div>
-                      <h4 className="font-bold text-sm text-white">
-                        {proximoTurno.notasCliente || 'Corte clásico'}
-                      </h4>
-                      <p className="text-[11px] text-gray-400">
-                        Con Bruno • {proximoTurno.sucursal || 'BarberApp Centro'}
+                      <div className="w-9 h-9 bg-[#111713] rounded-xl flex items-center justify-center text-[#E08A3E] mb-3 border border-[#2D3E31]">
+                        <Calendar size={18} />
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">Agendar turno</h4>
+                      <p className="text-[11px] text-gray-400 mt-1 mb-4 leading-relaxed">
+                        Elige fecha, hora y servicio con un solo clic.
                       </p>
                     </div>
+                    <button className="py-2 px-4 bg-[#111713] border border-[#2D3E31] text-xs font-bold text-white rounded-xl hover:border-[#E08A3E] transition-all self-start">
+                      Agendar
+                    </button>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => navigate('/cliente/historial')}
-                      className="bg-[#d97706] hover:bg-[#b45309] text-black text-xs font-bold px-4 py-2 rounded-lg transition"
-                    >
-                      Ver turno
-                    </button>
-                    <button 
-                      onClick={() => handleCancelarTurno(proximoTurno.idTurno)}
-                      className="bg-[#26322a] hover:bg-red-950 hover:text-red-400 text-gray-300 text-xs font-medium px-4 py-2 rounded-lg transition border border-gray-700"
-                    >
-                      Cancelar
+
+                  <div
+                      onClick={() => navigate('/historialC')}
+                      className="bg-[#1A251D] border border-[#2D3E31] hover:border-[#E08A3E] p-5 rounded-2xl cursor-pointer transition-colors shadow-lg flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="w-9 h-9 bg-[#111713] rounded-xl flex items-center justify-center text-[#E08A3E] mb-3 border border-[#2D3E31]">
+                        <History size={18} />
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">Historial de turnos</h4>
+                      <p className="text-[11px] text-gray-400 mt-1 mb-4 leading-relaxed">
+                        Revisa tus visitas pasadas y el detalle de cada servicio.
+                      </p>
+                    </div>
+                    <button className="py-2 px-4 bg-[#111713] border border-[#2D3E31] text-xs font-bold text-white rounded-xl hover:border-[#E08A3E] transition-all self-start">
+                      Ver historial
                     </button>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-4 mt-4 text-xs">
-                  <div className="bg-[#18211b] p-3 rounded-xl border border-[#232f27]">
-                    <span className="text-[10px] text-gray-500 block mb-0.5">Estado</span>
-                    <span className="font-semibold text-green-400">{proximoTurno.estado}</span>
-                  </div>
-                  <div className="bg-[#18211b] p-3 rounded-xl border border-[#232f27]">
-                    <span className="text-[10px] text-gray-500 block mb-0.5">Pago</span>
-                    <span className="font-semibold text-white">En sucursal</span>
-                  </div>
-                  <div className="bg-[#18211b] p-3 rounded-xl border border-[#232f27]">
-                    <span className="text-[10px] text-gray-500 block mb-0.5">Llegada</span>
-                    <span className="font-semibold text-white">10 min antes</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-8 text-gray-400 text-xs">
-                No tienes turnos programados en este momento.
               </div>
-            )}
-          </div>
-
-          {/* Accesos Rápidos */}
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-[10px] font-extrabold uppercase text-[#d97706] tracking-wider">
-                Accesos Rápidos
-              </span>
-              <span className="text-[10px] text-gray-500">Última actualización hoy</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-4">Gestiona tu experiencia</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div 
-                onClick={() => navigate('/cliente/agendar')}
-                className="bg-[#151d18] border border-[#232f27] hover:border-[#d97706]/40 p-4 rounded-xl cursor-pointer transition"
-              >
-                <div className="w-7 h-7 bg-[#1e2a22] rounded-lg flex items-center justify-center text-[#d97706] mb-3">
-                  <Calendar size={15} />
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="bg-[#1A251D] border border-[#2D3E31] rounded-3xl p-6 shadow-xl w-full">
+                <div className="flex justify-between items-center mb-6">
+                <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase">
+                  NAVEGACIÓN
+                </span>
+                  <div
+                      onClick={() => navigate('/ajustesc')}
+                      className="flex items-center gap-2 cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#111713] border border-[#E08A3E] text-white font-bold text-xs flex items-center justify-center group-hover:scale-105 transition-all">
+                      {primerNombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-xs font-bold text-white leading-none">{primerNombre}</span>
+                      <span className="text-[9px] text-gray-400 block">Cliente</span>
+                    </div>
+                  </div>
                 </div>
-                <h4 className="font-bold text-xs text-white">Agendar turno</h4>
-                <p className="text-[11px] text-gray-400 mt-1 mb-3">Elige fecha, hora y servicio con un solo clic.</p>
-                <span className="text-[11px] text-[#d97706] font-semibold">Agendar →</span>
+
+                <nav className="flex flex-col gap-2">
+                  <button
+                      onClick={() => navigate('/cliente')}
+                      className="w-full p-3 bg-[#111713] border border-[#2D3E31] rounded-xl flex items-center gap-3 text-xs font-bold text-white transition-all cursor-pointer"
+                  >
+                    <Home size={16} className="text-[#E08A3E]" />
+                    <span>Inicio</span>
+                  </button>
+
+                  <button
+                      onClick={() => navigate('/historialC')}
+                      className="w-full p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-xl flex items-center gap-3 text-xs font-medium text-gray-300 transition-all cursor-pointer"
+                  >
+                    <Calendar size={16} className="text-gray-400" />
+                    <span>Mis turnos</span>
+                  </button>
+
+                  <button
+                      onClick={() => navigate('/historialC')}
+                      className="w-full p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-xl flex items-center gap-3 text-xs font-medium text-gray-300 transition-all cursor-pointer"
+                  >
+                    <History size={16} className="text-gray-400" />
+                    <span>Historial</span>
+                  </button>
+
+                  <button
+                      onClick={() => navigate('/historialC')}
+                      className="w-full p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-xl flex items-center gap-3 text-xs font-medium text-gray-300 transition-all cursor-pointer"
+                  >
+                    <CreditCard size={16} className="text-gray-400" />
+                    <span>Pagos</span>
+                  </button>
+
+                  <button
+                      onClick={() => navigate('/ajustesc')}
+                      className="w-full p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-xl flex items-center gap-3 text-xs font-medium text-gray-300 transition-all cursor-pointer"
+                  >
+                    <Settings size={16} className="text-gray-400" />
+                    <span>Configuración</span>
+                  </button>
+                </nav>
               </div>
 
-              <div 
-                onClick={() => navigate('/cliente/historial')}
-                className="bg-[#151d18] border border-[#232f27] hover:border-[#d97706]/40 p-4 rounded-xl cursor-pointer transition"
-              >
-                <div className="w-7 h-7 bg-[#1e2a22] rounded-lg flex items-center justify-center text-[#d97706] mb-3">
-                  <Heart size={15} />
+              <div className="bg-[#1A251D] border border-[#2D3E31] rounded-3xl p-6 shadow-xl w-full">
+                <div className="flex justify-between items-center mb-4">
+                <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase">
+                  RESUMEN
+                </span>
+                  <span className="text-[10px] text-gray-500">Actualizado hoy</span>
                 </div>
-                <h4 className="font-bold text-xs text-white">Mis barberos favoritos</h4>
-                <p className="text-[11px] text-gray-400 mt-1 mb-3">Vuelve con Bruno u otros barberos que ya conoces.</p>
-                <span className="text-[11px] text-[#d97706] font-semibold">Ver favoritos →</span>
-              </div>
 
-              <div 
-                onClick={() => navigate('/cliente/historial')}
-                className="bg-[#151d18] border border-[#232f27] hover:border-[#d97706]/40 p-4 rounded-xl cursor-pointer transition"
-              >
-                <div className="w-7 h-7 bg-[#1e2a22] rounded-lg flex items-center justify-center text-[#d97706] mb-3">
-                  <History size={15} />
+                <div className="space-y-3 text-xs mb-6">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-400">Turnos este mes</span>
+                    <span className="font-bold text-white">{turnosEsteMes}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-400">Último pago</span>
+                    <span className="font-bold text-white">$1.250</span>
+                  </div>
                 </div>
-                <h4 className="font-bold text-xs text-white">Historial de turnos</h4>
-                <p className="text-[11px] text-gray-400 mt-1 mb-3">Revisa tus visitas pasadas y el detalle de cada servicio.</p>
-                <span className="text-[11px] text-[#d97706] font-semibold">Ver historial ({turnos.length}) →</span>
+
+                <button
+                    onClick={() => navigate('/historialC')}
+                    className="w-full py-3 bg-[#111713] hover:bg-[#18221c] border border-[#2D3E31] text-gray-300 font-bold rounded-xl text-xs transition-all cursor-pointer text-center block"
+                >
+                  Ver resumen
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Columna Derecha */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-[#151d18]/90 border border-[#232f27] rounded-2xl p-5">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-extrabold uppercase text-[#d97706] tracking-wider">
-                Navegación
-              </span>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-[#243329] border border-gray-600 flex items-center justify-center text-[10px] font-bold text-white">
-                  {inicialCliente}
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-white block leading-none capitalize">
-                    {nombreCliente}
-                  </span>
-                  <span className="text-[9px] text-gray-400 capitalize">
-                    {usuario?.tipo_usuario?.toLowerCase() || 'cliente'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <nav className="space-y-1 text-xs">
-              <button 
-                onClick={() => navigate('/cliente')} 
-                className="w-full flex items-center gap-3 px-3 py-2 text-[#d97706] bg-[#222e26] rounded-xl font-medium"
-              >
-                <Home size={15} /> Inicio
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/historial')} 
-                className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#1a251f] rounded-xl transition"
-              >
-                <Calendar size={15} /> Mis turnos
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/historial')} 
-                className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#1a251f] rounded-xl transition"
-              >
-                <Heart size={15} /> Favoritos
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/historial')} 
-                className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#1a251f] rounded-xl transition"
-              >
-                <History size={15} /> Historial
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/historial')} 
-                className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#1a251f] rounded-xl transition"
-              >
-                <CreditCard size={15} /> Pagos
-              </button>
-              <button 
-                onClick={() => navigate('/cliente')} 
-                className="w-full flex items-center gap-3 px-3 py-2 text-gray-400 hover:text-white hover:bg-[#1a251f] rounded-xl transition"
-              >
-                <Settings size={15} /> Configuración
-              </button>
-            </nav>
-          </div>
-
-          <div className="bg-[#151d18]/90 border border-[#232f27] rounded-2xl p-5">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-extrabold uppercase text-[#d97706] tracking-wider">
-                Resumen
-              </span>
-              <span className="text-[10px] text-gray-500">Actualizado hoy</span>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Turnos activos</span>
-                <span className="font-bold text-white">{turnosConfirmados}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Favoritos</span>
-                <span className="font-bold text-white">1</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Total historial</span>
-                <span className="font-bold text-white">{turnos.length}</span>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => navigate('/cliente/historial')}
-              className="w-full mt-5 bg-[#1a251f] hover:bg-[#233129] border border-[#2b3a30] text-gray-200 text-xs font-semibold py-2 rounded-xl transition"
-            >
-              Ver resumen
-            </button>
-          </div>
-        </div>
+        <footer className="relative z-10 p-4 text-center text-xs text-gray-600 mt-8">
+          El Mapache Bigotón &copy; BarberApp
+        </footer>
       </div>
-    </div>
   );
-} 
+}

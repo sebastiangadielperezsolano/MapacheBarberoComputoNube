@@ -8,7 +8,9 @@ import {
     DollarSign,
     Settings,
     CalendarX2,
-    LogOut
+    LogOut,
+    User,
+    Check
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,7 +28,9 @@ export default function BarberoDashboard() {
         usuarioSesion.usuario?.nombreCompleto ||
         'Barbero';
 
-    const inicialBarbero = nombreBarbero.charAt(0).toUpperCase();
+    const emailUsuario = (usuarioSesion.email || usuarioSesion.usuario?.email || '').toLowerCase();
+    const avatarsGuardados = JSON.parse(localStorage.getItem('avatars_usuarios') || '{}');
+    const fotoBarbero = avatarsGuardados[emailUsuario] || usuarioSesion.avatar || usuarioSesion.foto || '/defecto.png';
 
     const [barberos, setBarberos] = useState([]);
     const [turnos, setTurnos] = useState([]);
@@ -37,53 +41,73 @@ export default function BarberoDashboard() {
 
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const cargarDatosDashboard = async () => {
-            setLoading(true);
-            try {
-                const [
-                    resBarberos,
-                    resTurnos,
-                    resDispo,
-                    resPagos,
-                    resClientes,
-                    resServicios
-                ] = await Promise.allSettled([
-                    fetch(`${API_BASE_URL}/barbero`),
-                    fetch(`${API_BASE_URL}/api/turnos`),
-                    fetch(`${API_BASE_URL}/api/disponibilidades`),
-                    fetch(`${API_BASE_URL}/api/pagos`),
-                    fetch(`${API_BASE_URL}/cliente`),
-                    fetch(`${API_BASE_URL}/api/servicios`)
-                ]);
+    const cargarDatosDashboard = async () => {
+        setLoading(true);
+        try {
+            const [
+                resBarberos,
+                resTurnos,
+                resDispo,
+                resPagos,
+                resClientes,
+                resServicios
+            ] = await Promise.allSettled([
+                fetch(`${API_BASE_URL}/barbero`),
+                fetch(`${API_BASE_URL}/api/turnos`),
+                fetch(`${API_BASE_URL}/api/disponibilidades`),
+                fetch(`${API_BASE_URL}/api/pagos`),
+                fetch(`${API_BASE_URL}/cliente`),
+                fetch(`${API_BASE_URL}/api/servicios`)
+            ]);
 
-                if (resBarberos.status === 'fulfilled' && resBarberos.value.ok) {
-                    setBarberos(await resBarberos.value.json());
-                }
-                if (resTurnos.status === 'fulfilled' && resTurnos.value.ok) {
-                    setTurnos(await resTurnos.value.json());
-                }
-                if (resDispo.status === 'fulfilled' && resDispo.value.ok) {
-                    setDisponibilidades(await resDispo.value.json());
-                }
-                if (resPagos.status === 'fulfilled' && resPagos.value.ok) {
-                    setPagos(await resPagos.value.json());
-                }
-                if (resClientes.status === 'fulfilled' && resClientes.value.ok) {
-                    setClientes(await resClientes.value.json());
-                }
-                if (resServicios.status === 'fulfilled' && resServicios.value.ok) {
-                    setServicios(await resServicios.value.json());
-                }
-            } catch (error) {
-                console.log('Backend sin conexión activa, mostrando estructura limpia.');
-            } finally {
-                setLoading(false);
+            if (resBarberos.status === 'fulfilled' && resBarberos.value.ok) {
+                setBarberos(await resBarberos.value.json());
             }
-        };
+            if (resTurnos.status === 'fulfilled' && resTurnos.value.ok) {
+                const dataTurnos = await resTurnos.value.json();
+                if (Array.isArray(dataTurnos)) {
+                    dataTurnos.sort((a, b) => (b.idTurno || 0) - (a.idTurno || 0));
+                    setTurnos(dataTurnos);
+                }
+            }
+            if (resDispo.status === 'fulfilled' && resDispo.value.ok) {
+                setDisponibilidades(await resDispo.value.json());
+            }
+            if (resPagos.status === 'fulfilled' && resPagos.value.ok) {
+                setPagos(await resPagos.value.json());
+            }
+            if (resClientes.status === 'fulfilled' && resClientes.value.ok) {
+                setClientes(await resClientes.value.json());
+            }
+            if (resServicios.status === 'fulfilled' && resServicios.value.ok) {
+                setServicios(await resServicios.value.json());
+            }
+        } catch (error) {
+            console.log('Backend sin conexión activa, mostrando estructura limpia.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         cargarDatosDashboard();
     }, []);
+
+    const handleAceptarTurno = async (idTurno) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/turnos/${idTurno}/confirmar`, {
+                method: 'PUT'
+            });
+            if (res.ok) {
+                alert('¡Cita confirmada correctamente!');
+                cargarDatosDashboard();
+            } else {
+                alert('No se pudo confirmar la cita.');
+            }
+        } catch (error) {
+            alert('Error de conexión con el servidor.');
+        }
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('usuarioSesion');
@@ -91,11 +115,11 @@ export default function BarberoDashboard() {
         navigate('/login');
     };
 
-    const turnosCompletados = turnos.filter(t => t.estado === 'COMPLETADO' || t.estado === 'FINALIZADO').length;
-    const turnosPendientes = turnos.filter(t => t.estado === 'PENDIENTE' || t.estado === 'CONFIRMADO').length;
+    const turnosCompletados = turnos.filter(t => (t.estado || '').toUpperCase() === 'COMPLETADO' || (t.estado || '').toUpperCase() === 'FINALIZADO').length;
+    const turnosPendientes = turnos.filter(t => (t.estado || '').toUpperCase() === 'PENDIENTE' || (t.estado || '').toUpperCase() === 'CONFIRMADO').length;
 
     const ingresosDelDia = pagos.reduce((acc, p) => acc + (p.montoTotal || p.monto || 0), 0);
-    const pagosPendientes = pagos.filter(p => p.estado === 'PENDIENTE').length;
+    const pagosPendientes = pagos.filter(p => (p.estado || '').toUpperCase() === 'PENDIENTE').length;
 
     return (
         <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">
@@ -135,17 +159,33 @@ export default function BarberoDashboard() {
                         <span>+ Nuevo barbero</span>
                     </button>
 
-                    <div className="flex items-center gap-2 bg-[#1A251D] border border-[#2D3E31] p-1.5 px-3 rounded-xl">
-                        <div className="w-7 h-7 rounded-full bg-[#E08A3E] text-[#111713] font-bold text-xs flex items-center justify-center">
-                            {inicialBarbero}
-                        </div>
-                        <div className="text-left">
+                    <button
+                        onClick={() => navigate('/registrol')}
+                        className="py-2 px-4 bg-[#1A251D] hover:bg-[#25352a] text-gray-200 border border-[#2D3E31] font-semibold rounded-xl flex items-center gap-2 transition-all cursor-pointer text-xs"
+                    >
+                        <Plus size={15} className="text-[#E08A3E]" />
+                        <span>+ Nuevo turno</span>
+                    </button>
+
+                    <div
+                        onClick={() => navigate('/ajustesb')}
+                        className="flex items-center gap-2.5 bg-[#1A251D] border border-[#2D3E31] p-1.5 px-3 rounded-xl cursor-pointer hover:border-[#E08A3E] transition-colors"
+                    >
+                        <div className="text-right">
                             <span className="block text-xs font-bold leading-none">
                                 {nombreBarbero}
                             </span>
                             <span className="text-[10px] text-gray-400 block">
-                                Barbero Active
+                                Barbero principal
                             </span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-[#111713] border border-[#E08A3E] flex items-center justify-center">
+                            <img
+                                src={fotoBarbero}
+                                alt={nombreBarbero}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.src = '/defecto.png'; }}
+                            />
                         </div>
                     </div>
 
@@ -170,13 +210,20 @@ export default function BarberoDashboard() {
                     <button className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer">
                         Clientes ({clientes.length})
                     </button>
+                    <button
+                        onClick={() => navigate('/ajustesb')}
+                        className="py-1.5 px-4 text-gray-400 hover:text-white text-xs font-medium rounded-lg cursor-pointer flex items-center gap-1.5"
+                    >
+                        <Settings size={13} />
+                        <span>Perfil</span>
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <span className="text-xs bg-[#1A251D] border border-[#2D3E31] px-3 py-1 rounded-full text-gray-300">
                         {Array.isArray(disponibilidades) && disponibilidades.length > 0
                             ? `Hoy · ${disponibilidades[0]?.diaEntrada || '09:00'} - ${disponibilidades[0]?.diaSalida || '19:00'}`
-                            : 'Hoy · 09:00 - 19:00'}
+                            : 'Hoy · 09:00-19:00'}
                     </span>
                     <span className="text-xs bg-[#E08A3E]/20 text-[#E08A3E] border border-[#E08A3E]/30 px-3 py-1 rounded-full font-bold">
                         {turnosPendientes} turnos próximos
@@ -185,18 +232,35 @@ export default function BarberoDashboard() {
             </div>
 
             <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight mb-1">
-                        Hola, {nombreBarbero}
-                    </h2>
-                    <p className="text-xs text-gray-400">
-                        Gestiona tu agenda, revisa el rendimiento del día y prepara la próxima atención.
-                    </p>
+                <div className="flex items-center gap-4">
+                    <div
+                        onClick={() => navigate('/ajustesb')}
+                        className="relative w-20 h-20 sm:w-24 sm:h-24 bg-[#1A251D] border-2 border-[#E08A3E] rounded-3xl p-1 shadow-2xl flex-shrink-0 cursor-pointer overflow-hidden group hover:scale-105 transition-all"
+                    >
+                        <img
+                            src={fotoBarbero}
+                            alt={nombreBarbero}
+                            className="w-full h-full object-cover rounded-2xl"
+                            onError={(e) => { e.target.src = '/defecto.png'; }}
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-bold text-white text-center p-1">
+                            Cambiar
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-1">
+                            Hola, {nombreBarbero}
+                        </h2>
+                        <p className="text-xs text-gray-400 max-w-xl">
+                            Gestiona tu agenda, revisa el rendimiento del día y prepara la próxima atención desde un solo lugar.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <button
-                        onClick={() => navigate('/agendar')}
+                        onClick={() => navigate('/registrol')}
                         className="py-2.5 px-5 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-bold rounded-xl flex items-center gap-2 text-xs transition-all shadow-lg cursor-pointer"
                     >
                         <Plus size={16} />
@@ -235,13 +299,12 @@ export default function BarberoDashboard() {
                         </div>
                     </div>
 
-                    {/* Agenda Diaria */}
                     <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-6">
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h3 className="font-bold text-lg">Agenda diaria</h3>
                                 <span className="text-xs text-gray-400">
-                                    {turnos.length} citas registradas
+                                    {turnos.length} clientes programados - {turnosPendientes} turnos próximos
                                 </span>
                             </div>
                         </div>
@@ -254,7 +317,7 @@ export default function BarberoDashboard() {
                                     Los turnos agendados desde la base de datos aparecerán automáticamente en esta lista.
                                 </p>
                                 <button
-                                    onClick={() => navigate('/agendar')}
+                                    onClick={() => navigate('/registrol')}
                                     className="py-2 px-4 bg-[#1A251D] border border-[#2D3E31] text-[#E08A3E] font-semibold rounded-xl text-xs hover:border-[#E08A3E] transition-all cursor-pointer"
                                 >
                                     + Agendar cita manualmente
@@ -273,6 +336,9 @@ export default function BarberoDashboard() {
                                         servicios.find(s => s.idServicio === t.idServicio)?.nombreServicio ||
                                         'Servicio de barbería';
 
+                                    const estadoLimpio = (t.estado || 'CONFIRMADO').toUpperCase();
+                                    const esPendiente = estadoLimpio === 'PENDIENTE';
+
                                     return (
                                         <div key={t.idTurno || idx} className="flex items-center justify-between p-3 bg-[#111713] border border-[#2D3E31] rounded-xl">
                                             <div className="flex items-center gap-4">
@@ -287,9 +353,26 @@ export default function BarberoDashboard() {
                                                     <p className="text-[10px] text-gray-500">{servicioNombre} • {t.fecha || 'Hoy'}</p>
                                                 </div>
                                             </div>
-                                            <span className="text-[10px] text-[#E08A3E] bg-[#E08A3E]/10 border border-[#E08A3E]/30 px-3 py-1 rounded-full font-semibold">
-                                                {t.estado || 'CONFIRMADO'}
-                                            </span>
+
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] px-3 py-1 rounded-full font-semibold border ${
+                                                    esPendiente
+                                                        ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                                                        : 'bg-[#E08A3E]/10 text-[#E08A3E] border-[#E08A3E]/30'
+                                                }`}>
+                                                    {estadoLimpio}
+                                                </span>
+
+                                                {esPendiente && (
+                                                    <button
+                                                        onClick={() => handleAceptarTurno(t.idTurno)}
+                                                        className="py-1 px-3 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] text-[11px] font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-md"
+                                                    >
+                                                        <Check size={12} />
+                                                        <span>Aceptar Cita</span>
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -304,7 +387,7 @@ export default function BarberoDashboard() {
                         <h3 className="font-bold text-sm mb-4">Gestión rápida</h3>
                         <div className="grid grid-cols-2 gap-2">
                             <button
-                                onClick={() => navigate('/agendar')}
+                                onClick={() => navigate('/registrol')}
                                 className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer"
                             >
                                 <Plus size={14} className="text-[#E08A3E]" />
@@ -313,6 +396,13 @@ export default function BarberoDashboard() {
                             <button className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer">
                                 <DollarSign size={14} className="text-[#E08A3E]" />
                                 <span>Cobros ({pagos.length})</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/ajustesb')}
+                                className="p-3 bg-[#111713] border border-[#2D3E31] text-xs font-medium rounded-xl flex items-center gap-2 hover:border-[#E08A3E] transition-colors cursor-pointer col-span-2"
+                            >
+                                <Settings size={14} className="text-[#E08A3E]" />
+                                <span>Ajustes de Perfil</span>
                             </button>
                         </div>
                     </div>
