@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @EqualsAndHashCode(callSuper = true)
-@PrimaryKeyJoinColumn(name = "id_usuario") // Coincide con la columna FK de MySQL
+@PrimaryKeyJoinColumn(name = "id_usuario")
 @Table(name = "cliente")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Cliente extends Usuario {
@@ -31,7 +31,7 @@ public class Cliente extends Usuario {
 
     @ManyToOne(fetch = FetchType.EAGER, optional = true)
     @JoinColumn(name = "id_barbero", nullable = true)
-    @JsonIgnoreProperties({"turnos", "disponatributos", "password"})
+    @JsonIgnoreProperties({"turnos", "disponibilidades", "password"})
     private Barbero barbero;
 
     public Long getIdCliente() {

@@ -41,6 +41,13 @@ export default function BarberoDashboard() {
 
     const [loading, setLoading] = useState(true);
 
+    const hoyIso = new Date().toISOString().split('T')[0];
+
+    const turnosActivos = turnos.filter(t => {
+        const fechaTurno = t.fecha;
+        return fechaTurno >= hoyIso;
+    });
+
     const cargarDatosDashboard = async () => {
         setLoading(true);
         try {
@@ -234,7 +241,6 @@ export default function BarberoDashboard() {
             <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div className="flex items-center gap-4">
                     <div
-                        onClick={() => navigate('/ajustesb')}
                         className="relative w-20 h-20 sm:w-24 sm:h-24 bg-[#1A251D] border-2 border-[#E08A3E] rounded-3xl p-1 shadow-2xl flex-shrink-0 cursor-pointer overflow-hidden group hover:scale-105 transition-all"
                     >
                         <img
@@ -244,7 +250,6 @@ export default function BarberoDashboard() {
                             onError={(e) => { e.target.src = '/defecto.png'; }}
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-bold text-white text-center p-1">
-                            Cambiar
                         </div>
                     </div>
 

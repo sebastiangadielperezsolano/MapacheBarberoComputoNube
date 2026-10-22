@@ -14,16 +14,16 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 @Table(name = "pago")
 public class Pago {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idPago")
+    @Column(name = "id_pago")
     private Long idPago;
 
     @NotNull
-    @Column(name = "montoTotal")
+    @Column(name = "monto_total")
     @Digits(integer = 6, fraction = 2)
     private BigDecimal montoTotal;
 
@@ -36,12 +36,11 @@ public class Pago {
     private String estado;
 
     @NotNull
-    @Column(name = "ultimosDigitos")
-    @Digits(integer = 4, fraction = 0)
+    @Column(name = "ultimos_digitos")
     private String ultimosDigitos;
 
     @OneToOne
-    @JoinColumn(name = "idTurno")
+    @JoinColumn(name = "id_turno")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Turno turno;
 }

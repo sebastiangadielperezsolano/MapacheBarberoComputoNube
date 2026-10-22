@@ -17,15 +17,24 @@ public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idUsuario")
+    @Column(name = "id_usuario")
     private Long idUsuario;
 
+    @Column(name = "nombre_completo")
     private String nombreCompleto;
+
+    @Column(name = "email", unique = true)
     private String email;
+
+    @Column(name = "telefono")
     private String telefono;
+
+    @Column(name = "password")
     private String password;
 
+    @Column(name = "perfil")
     private String perfil;
 
+    @Column(name = "tipo_usuario")
     private String tipoUsuario;
 }

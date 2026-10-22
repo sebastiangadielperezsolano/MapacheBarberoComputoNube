@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tecnm.equipo4.barberoApi.models.Servicio;
-import tecnm.equipo4.barberoApi.services.ServicioService;
+import tecnm.equipo4.barberoApi.repositories.ServicioRepository;
 
 import java.util.List;
 
@@ -15,15 +15,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ServicioController {
 
-    private final ServicioService servicioService;
+    private final ServicioRepository servicioRepository;
 
     @GetMapping
     public ResponseEntity<?> listar(@RequestParam(required = false) String nombre) {
         try {
             if (nombre != null && !nombre.trim().isEmpty()) {
-                return ResponseEntity.ok(servicioService.buscarPorNombre(nombre));
+                return ResponseEntity.ok(servicioRepository.findByNombreServicioContainingIgnoreCase(nombre));
             }
-            return ResponseEntity.ok(servicioService.listarTodos());
+            return ResponseEntity.ok(servicioRepository.findAll());
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -33,19 +33,22 @@ public class ServicioController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Servicio> obtener(@PathVariable Long id) {
-        return servicioService.buscarPorId(id)
+        return servicioRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<Servicio> crear(@RequestBody Servicio servicio) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(servicioService.guardar(servicio));
+        return ResponseEntity.status(HttpStatus.CREATED).body(servicioRepository.save(servicio));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        servicioService.eliminar(id);
-        return ResponseEntity.noContent().build();
+        if (servicioRepository.existsById(id)) {
+            servicioRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }

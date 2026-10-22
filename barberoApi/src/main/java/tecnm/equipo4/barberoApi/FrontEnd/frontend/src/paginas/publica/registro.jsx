@@ -30,7 +30,6 @@ export default function RegistroCliente() {
         setLoading(true);
         setErrorMsg('');
 
-        // Payload garantizado con campos requeridos por la BD
         const payload = {
             nombreCompleto: formData.nombreCompleto.trim(),
             email: formData.email.trim(),
@@ -48,7 +47,7 @@ export default function RegistroCliente() {
             });
 
             if (response.ok || response.status === 201) {
-                alert('¡Cuenta creada con éxito! Ahora puedes iniciar sesión.');
+                alert('¡Cuenta creada con éxito!');
                 navigate('/login');
             } else {
                 const textError = await response.text();

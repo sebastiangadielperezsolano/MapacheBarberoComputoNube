@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tecnm.equipo4.barberoApi.models.Pago;
-import tecnm.equipo4.barberoApi.services.PagoService;
+import tecnm.equipo4.barberoApi.repositories.PagoRepository;
 
 import java.util.List;
 
@@ -15,32 +15,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PagoController {
 
-    private final PagoService pagoService;
+    private final PagoRepository pagoRepository;
 
     @GetMapping
     public ResponseEntity<List<Pago>> listar(@RequestParam(required = false) String estado) {
         if (estado != null && !estado.isBlank()) {
-            return ResponseEntity.ok(pagoService.listarPorEstado(estado));
+            return ResponseEntity.ok(pagoRepository.findByEstado(estado));
         }
-        return ResponseEntity.ok(pagoService.listarTodos());
+        return ResponseEntity.ok(pagoRepository.findAll());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Pago> obtener(@PathVariable Long id) {
-        return pagoService.buscarPorId(id)
+        return pagoRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<Pago> registrar(@RequestBody Pago pago) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pagoService.registrarPago(pago));
-    }
-
-    @PatchMapping("/{id}/estado")
-    public ResponseEntity<Pago> actualizarEstado(@PathVariable Long id, @RequestParam String nuevoEstado) {
-        return pagoService.actualizarEstado(id, nuevoEstado)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(pagoRepository.save(pago));
     }
 }

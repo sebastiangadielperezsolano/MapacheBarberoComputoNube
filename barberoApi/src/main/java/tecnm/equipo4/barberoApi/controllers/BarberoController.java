@@ -19,7 +19,6 @@ public class BarberoController {
 
     private final BarberoRepository barberoRepository;
 
-    // Consultar todos los barberos
     @GetMapping
     public ResponseEntity<?> findAll() {
         try {
@@ -32,7 +31,6 @@ public class BarberoController {
         }
     }
 
-    // Consultar barbero por ID
     @GetMapping("/{idBarbero}")
     public ResponseEntity<Barbero> findById(@PathVariable Long idBarbero) {
         Optional<Barbero> barberoOptional = barberoRepository.findById(idBarbero);
@@ -40,21 +38,16 @@ public class BarberoController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    //Crear un nuevo barbero
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Barbero newBarbero, UriComponentsBuilder ucb) {
         try {
-            // Asigna el rol correspondiente si la clase base Usuario lo requiere
             if (newBarbero.getTipoUsuario() == null) {
                 newBarbero.setTipoUsuario("BARBERO");
             }
-
             Barbero savedBarbero = barberoRepository.save(newBarbero);
-
             URI uri = ucb.path("/barbero/{idBarbero}")
                     .buildAndExpand(savedBarbero.getIdBarbero())
                     .toUri();
-
             return ResponseEntity.created(uri).body(savedBarbero);
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,22 +56,17 @@ public class BarberoController {
         }
     }
 
-    // Actualizar un barbero existente
     @PutMapping("/{idBarbero}")
     public ResponseEntity<Void> update(@PathVariable Long idBarbero, @RequestBody Barbero putBarbero) {
         Optional<Barbero> barberoAnt = barberoRepository.findById(idBarbero);
-
-        // Corregido: Debe ser isPresent() para actualizar
         if (barberoAnt.isPresent()) {
             putBarbero.setIdBarbero(idBarbero);
             barberoRepository.save(putBarbero);
             return ResponseEntity.noContent().build();
         }
-
         return ResponseEntity.notFound().build();
     }
 
-    // Eliminar un barbero
     @DeleteMapping("/{idBarbero}")
     public ResponseEntity<Void> delete(@PathVariable Long idBarbero) {
         if (barberoRepository.findById(idBarbero).isPresent()) {

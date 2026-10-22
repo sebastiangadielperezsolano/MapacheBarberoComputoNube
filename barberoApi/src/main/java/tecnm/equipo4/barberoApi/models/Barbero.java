@@ -16,15 +16,15 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 @EqualsAndHashCode(callSuper = true)
-@PrimaryKeyJoinColumn(name = "idUsuario")
+@PrimaryKeyJoinColumn(name = "id_usuario")
 @Table(name = "barbero")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Barbero extends Usuario {
 
-    @Column(nullable = false)
+    @Column(name = "experiencia", nullable = false)
     private int experiencia;
 
-    @Column(nullable = false)
+    @Column(name = "titulo_rol", nullable = false)
     private String tituloRol;
 
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
@@ -35,7 +35,6 @@ public class Barbero extends Usuario {
     @JsonIgnore
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
-    @JsonIgnore
     public Long getIdBarbero() {
         return this.getIdUsuario();
     }

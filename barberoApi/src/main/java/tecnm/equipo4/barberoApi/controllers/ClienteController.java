@@ -40,22 +40,17 @@ public class ClienteController {
             if (newCliente.getTipoUsuario() == null || newCliente.getTipoUsuario().trim().isEmpty()) {
                 newCliente.setTipoUsuario("CLIENTE");
             }
-
             if (newCliente.getPerfil() == null || newCliente.getPerfil().trim().isEmpty()) {
                 newCliente.setPerfil("CLIENTE");
             }
-
             if (newCliente.getBarbero() == null) {
                 Optional<Barbero> defaultBarbero = barberoRepository.findById(1L);
                 defaultBarbero.ifPresent(newCliente::setBarbero);
             }
-
             Cliente savedCliente = clienteRepository.save(newCliente);
-
             URI uri = ucb.path("/cliente/{idCliente}")
                     .buildAndExpand(savedCliente.getIdCliente())
                     .toUri();
-
             return ResponseEntity.created(uri).body(savedCliente);
         } catch (Exception e) {
             e.printStackTrace();

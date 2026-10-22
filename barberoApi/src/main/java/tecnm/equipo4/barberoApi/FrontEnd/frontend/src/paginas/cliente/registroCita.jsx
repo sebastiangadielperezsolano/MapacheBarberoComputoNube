@@ -27,7 +27,8 @@ export default function AgendarCita() {
   const [notas, setNotas] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  // Días rápidos de selección estilo Figma
+
+
   const diasRapidos = [
     { label: 'HOY', diaNum: '20', mes: 'Marzo', valorIso: '2026-03-20' },
     { label: 'SÁB', diaNum: '21', mes: 'Marzo', valorIso: '2026-03-21' },

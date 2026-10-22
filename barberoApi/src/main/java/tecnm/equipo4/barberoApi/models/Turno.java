@@ -2,9 +2,10 @@ package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -44,9 +45,10 @@ public class Turno {
     @Column(name = "id_servicio")
     private Long idServicio;
 
+
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_barbero", insertable = false, updatable = false)
-    @JsonIgnoreProperties({"turnos", "password"})
+    @JoinColumn(name = "id_barbero", referencedColumnName = "id_usuario", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"turnos", "disponibilidades", "password"})
     private Barbero barbero;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -55,6 +57,6 @@ public class Turno {
     private Cliente cliente;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_servicio", insertable = false, updatable = false)
+    @JoinColumn(name = "id_servicio", referencedColumnName = "id_servicio", insertable = false, updatable = false)
     private Servicio servicio;
 }

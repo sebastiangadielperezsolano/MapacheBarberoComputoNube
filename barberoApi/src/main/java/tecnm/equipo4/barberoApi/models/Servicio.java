@@ -1,9 +1,10 @@
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data

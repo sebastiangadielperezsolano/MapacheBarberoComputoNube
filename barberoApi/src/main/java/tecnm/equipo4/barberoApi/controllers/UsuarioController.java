@@ -16,7 +16,7 @@ import java.util.Optional;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
@@ -28,7 +28,6 @@ public class UsuarioController {
                 loginRequest.getEmail(),
                 loginRequest.getPassword()
         );
-
         if (usuarioOptional.isPresent()) {
             return ResponseEntity.ok(usuarioOptional.get());
         }
@@ -37,7 +36,6 @@ public class UsuarioController {
                 loginRequest.getEmail(),
                 loginRequest.getPassword()
         );
-
         if (clienteOptional.isPresent()) {
             return ResponseEntity.ok(clienteOptional.get());
         }
