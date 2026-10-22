@@ -1,41 +1,29 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Digits;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
-@Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 @Table(name = "servicio")
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Servicio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idServicio")
+    @Column(name = "id_servicio")
     private Long idServicio;
 
-    @Column(name = "nombreServicio", nullable = false)
+    @Column(name = "nombre_servicio", nullable = false)
     private String nombreServicio;
 
     @Column(name = "duracion")
     private Integer duracion;
 
-    @Column(name = "precio", nullable = false)
-    @Digits(integer = 6, fraction = 2)
+    @Column(name = "precio")
     private BigDecimal precio;
-
-    @OneToMany(mappedBy = "servicio", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private List<Turno> turnos = new ArrayList<>();
 }

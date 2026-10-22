@@ -1,59 +1,58 @@
 package tecnm.equipo4.barberoApi.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tecnm.equipo4.barberoApi.models.Turno;
-import tecnm.equipo4.barberoApi.services.TurnoService;
+import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/turnos")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
 public class TurnoController {
 
-    private final TurnoService turnoService;
+    private final TurnoRepository turnoRepository;
 
-    @GetMapping
-    public ResponseEntity<List<Turno>> listar(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
-            @RequestParam(required = false) String estado) {
-        if (fecha != null) {
-            return ResponseEntity.ok(turnoService.listarPorFecha(fecha));
-        }
-        if (estado != null && !estado.isBlank()) {
-            return ResponseEntity.ok(turnoService.listarPorEstado(estado));
-        }
-        return ResponseEntity.ok(turnoService.listarTodos());
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Turno> obtener(@PathVariable Long id) {
-        return turnoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/cliente/{idCliente}")
+    public ResponseEntity<List<Turno>> obtenerTurnosPorCliente(@PathVariable Long idCliente) {
+        return ResponseEntity.ok(turnoRepository.buscarPorCliente(idCliente));
     }
 
     @PostMapping
-    public ResponseEntity<Turno> agendar(@RequestBody Turno turno) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(turnoService.agendar(turno));
+    public ResponseEntity<?> agendarTurno(@RequestBody Turno turno) {
+        try {
+            if (turno.getEstado() == null || turno.getEstado().trim().isEmpty()) {
+                turno.setEstado("CONFIRMADO");
+            }
+            if (turno.getIdBarbero() == null) {
+                turno.setIdBarbero(2L);
+            }
+            if (turno.getIdServicio() == null) {
+                turno.setIdServicio(1L);
+            }
+            if (turno.getSucursal() == null || turno.getSucursal().trim().isEmpty()) {
+                turno.setSucursal("BarberApp Centro");
+            }
+            Turno nuevoTurno = turnoRepository.save(turno);
+            return ResponseEntity.ok(nuevoTurno);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al registrar turno: " + e.getMessage());
+        }
     }
 
-    @PatchMapping("/{id}/estado")
-    public ResponseEntity<Turno> actualizarEstado(@PathVariable Long id, @RequestParam String nuevoEstado) {
-        return turnoService.cambiarEstado(id, nuevoEstado)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        turnoService.eliminar(id);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{id}/cancelar")
+    public ResponseEntity<?> cancelarTurno(@PathVariable Long id) {
+        Optional<Turno> turnoOpt = turnoRepository.findById(id);
+        if (turnoOpt.isPresent()) {
+            Turno turno = turnoOpt.get();
+            turno.setEstado("CANCELADO");
+            return ResponseEntity.ok(turnoRepository.save(turno));
+        }
+        return ResponseEntity.notFound().build();
     }
 }

@@ -1,32 +1,29 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
 import Inicio from './paginas/publica/inicio';
 import InicioSesion from './paginas/publica/inicioSesion';
 import Registro from './paginas/publica/registro';
+
 import InicioCliente from './paginas/cliente/inicioCliente';
-import RegistroC from './paginas/cliente/registroCita';
-import InicioBarbero from './paginas/barbero/inicioBarbero';
-import RegistroB from './paginas/barbero/registroBarbero';
+import RegistroCita from './paginas/cliente/registroCita';
+import HistorialCliente from './paginas/cliente/historialCliente';
 
-function App() {
-    return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Inicio />} />
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Inicio />} />
+        <Route path="/iniciar-sesion" element={<InicioSesion />} />
+        <Route path="/registro" element={<Registro />} />
 
-                <Route path="/login" element={<InicioSesion />} />
+        {/* Panel y acciones del cliente */}
+        <Route path="/cliente" element={<InicioCliente />} />
+        <Route path="/cliente/agendar" element={<RegistroCita />} />
+        <Route path="/cliente/historial" element={<HistorialCliente />} />
 
-                <Route path="/registro" element={<Registro />} />
-
-                <Route path="/cliente" element={<InicioCliente />} />
-
-                <Route path="/agendar" element={<RegistroC />} />
-
-                <Route path="/barbero" element={<InicioBarbero />} />
-
-                <Route path="/empleado" element={<RegistroB />} />
-            </Routes>
-        </BrowserRouter>
-    )
+        <Route path="*" element={<Navigate to="/iniciar-sesion" replace />} />
+      </Routes>
+    </Router>
+  );
 }
-
-export default App
