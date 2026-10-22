@@ -1,72 +1,70 @@
 import React from 'react';
-import { LogIn, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { LogIn, UserPlus } from 'lucide-react';
 
 export default function Inicio() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    return (
-        <div className="relative min-h-screen bg-[#111713] text-white flex flex-col justify-between overflow-hidden font-sans">
+  return (
+    <div className="min-h-screen bg-[#111613] text-gray-200 flex flex-col justify-between p-6 md:p-10 font-sans relative overflow-hidden select-none">
+      
+      {/* Círculos sólidos de Figma */}
+      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
 
-            <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-[#1A251D] rounded-full opacity-60 pointer-events-none" />
-            <div className="absolute bottom-[-100px] left-[-100px] w-96 h-96 bg-[#1A251D] rounded-full opacity-60 pointer-events-none" />
+      {/* Header */}
+      <header className="flex justify-between items-center relative z-10 max-w-7xl mx-auto w-full">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
+            <span className="text-2xl filter drop-shadow">🦝</span>
+          </div>
+          <div className="leading-tight">
+            <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
+              El Mapache Bigotón
+            </span>
+            <span className="text-xl font-extrabold text-white tracking-wide">
+              BarberApp
+            </span>
+          </div>
+        </div>
+      </header>
 
-            <header className="relative z-10 p-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
-                    <img
-                        src="/racoon_1.png"
-                        alt="El Mapache Bigotón"
-                        className="w-full h-full object-contain"
-                    />
-                </div>
-                <div>
-          <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
-            El Mapache Bigotón
-          </span>
-                    <h1 className="text-xl font-bold tracking-tight text-white leading-none">
-                        BarberApp
-                    </h1>
-                </div>
-            </header>
-
-            <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 text-center">
-        <span className="text-xs tracking-widest text-[#E08A3E] font-bold uppercase mb-2">
+      {/* Centro Hero */}
+      <main className="relative z-10 max-w-md mx-auto text-center my-auto">
+        <span className="text-[11px] font-black tracking-widest text-[#d97706] uppercase block mb-2">
           El Mapache Bigotón
         </span>
-                <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">
-                    Bienvenido al <br />
-                    Mapache Bigotón
-                </h2>
-                <p className="text-gray-400 text-sm mb-8">
-                    Tu estilo, tu tiempo.
-                </p>
+        <h1 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tight mb-2">
+          Bienvenido al Mapache Bigotón
+        </h1>
+        <p className="text-xs text-gray-400 mb-8">
+          Tu estilo, tu tiempo.
+        </p>
 
-                <div className="w-full max-w-sm flex flex-col gap-3">
-                    <button
-                        type="button"
-                        onClick={() => navigate('/login')}
-                        className="w-full py-3 px-6 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer"
-                    >
-                        <LogIn size={18} />
-                        <span>Iniciar sesión</span>
-                    </button>
+        <div className="space-y-3">
+          <button
+            onClick={() => navigate('/iniciar-sesion')}
+            className="w-full bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-black py-3.5 rounded-xl text-xs transition duration-200 shadow-xl shadow-black/40 flex items-center justify-center gap-2"
+          >
+            <LogIn size={15} /> Iniciar sesión
+          </button>
 
-                    <button
-                        type="button"
-                        onClick={() => navigate('/registro')}
-                        className="w-full py-3 px-6 bg-[#1A251D] hover:bg-[#25352a] text-gray-200 font-semibold rounded-xl border border-[#2D3E31] flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                        <UserPlus size={18} />
-                        <span>Registrarse</span>
-                    </button>
-                </div>
-
-                <p className="text-[11px] text-gray-500 mt-6">
-                    Al continuar aceptas nuestros términos y política de privacidad.
-                </p>
-            </main>
-
-            <footer className="relative z-10 p-4 text-center"></footer>
+          <button
+            onClick={() => navigate('/registro')}
+            className="w-full bg-[#18211b] hover:bg-[#202c23] border border-[#25332a] text-gray-200 font-bold py-3.5 rounded-xl text-xs transition duration-200 shadow-md flex items-center justify-center gap-2"
+          >
+            <UserPlus size={15} /> Registrarse
+          </button>
         </div>
-    );
+
+        <p className="text-[10px] text-gray-500 mt-6">
+          Al continuar aceptas nuestros términos de servicio y política de privacidad.
+        </p>
+      </main>
+
+      <footer className="relative z-10 text-center text-[10px] text-gray-600">
+        © 2026 BarberApp. Todos los derechos reservados.
+      </footer>
+    </div>
+  );
 }

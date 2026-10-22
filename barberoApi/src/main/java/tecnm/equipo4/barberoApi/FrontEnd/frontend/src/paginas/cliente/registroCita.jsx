@@ -1,344 +1,344 @@
-import React, { useState } from 'react';
-import {
-    User,
-    Phone,
-    FileText,
-    CheckCircle2,
-    CreditCard,
-    Wallet,
-    QrCode,
-    ArrowLeft,
-    Lock
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, User, Phone, Scissors, UserCheck } from 'lucide-react';
 
-export default function AgendarCita() {
-    const navigate = useNavigate();
+const API_BASE = 'http://localhost:8081/api';
 
-    const [nombre, setNombre] = useState('Mateo Ruiz');
-    const [telefono, setTelefono] = useState('+54 9 11 1234-5678');
-    const [fechaSeleccionada, setFechaSeleccionada] = useState('HOY 20');
-    const [horaSeleccionada, setHoraSeleccionada] = useState('18:30');
-    const [servicioSeleccionado, setServicioSeleccionado] = useState(2); // ID del servicio
-    const [metodoPago, setMetodoPago] = useState('tarjeta'); // 'tarjeta', 'mercadopago', 'transferencia'
-    const [notas, setNotas] = useState('');
+export default function RegistroCita() {
+  const navigate = useNavigate();
 
-    const servicios = [
-        { id: 1, nombre: 'Corte clásico', duracion: '45 min', precio: 38 },
-        { id: 2, nombre: 'Corte + barba', duracion: '60 min', precio: 48 },
-        { id: 3, nombre: 'Afeitado + corte', duracion: '60 min', precio: 52 },
-        { id: 4, nombre: 'Peinado + barba', duracion: '50 min', precio: 42 },
-        { id: 5, nombre: 'Corte degradado', duracion: '45 min', precio: 40 },
-    ];
+  const [usuario] = useState(() => {
+    try {
+      const sesion = localStorage.getItem('usuario');
+      return sesion ? JSON.parse(sesion) : { id_usuario: 1, nombre_completo: 'wicho' };
+    } catch {
+      return { id_usuario: 1, nombre_completo: 'wicho' };
+    }
+  });
 
-    const servicioActual = servicios.find(s => s.id === servicioSeleccionado);
+  const serviciosCatalogo = [
+    { id: 1, nombre: 'Corte clásico', precio: 150, duracion: '45 min' },
+    { id: 2, nombre: 'Corte + barba', precio: 250, duracion: '60 min' },
+    { id: 3, nombre: 'Afeitado + corte', precio: 200, duracion: '60 min' },
+    { id: 4, nombre: 'Peinado + barba', precio: 180, duracion: '50 min' },
+    { id: 5, nombre: 'Corte degradado', precio: 160, duracion: '45 min' }
+  ];
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log('Cita agendada:', {
-            nombre,
-            telefono,
-            fechaSeleccionada,
-            horaSeleccionada,
-            servicio: servicioActual,
-            metodoPago,
-            notas
-        });
+  const hoy = new Date();
+  const diasOpciones = [0, 1, 2, 3].map(offset => {
+    const d = new Date();
+    d.setDate(hoy.getDate() + offset);
+    const nombresDias = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+    const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const isoFecha = d.toISOString().split('T')[0];
+    return {
+      label: offset === 0 ? 'HOY' : nombresDias[d.getDay()],
+      numero: d.getDate(),
+      mes: nombresMeses[d.getMonth()],
+      fechaIso: isoFecha
+    };
+  });
 
-        alert('¡Tu cita ha sido agendada con éxito!');
-        navigate('/cliente');
+  const horariosManana = ['09:00', '09:45', '10:30', '11:15'];
+  const horariosTarde = ['14:00', '15:30', '17:00', '18:30'];
+
+  const [barberos, setBarberos] = useState([]);
+  const [idBarberoSeleccionado, setIdBarberoSeleccionado] = useState('');
+  const [servicioSeleccionado, setServicioSeleccionado] = useState(serviciosCatalogo[0]);
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(diasOpciones[0].fechaIso);
+  const [horaSeleccionada, setHoraSeleccionada] = useState('14:00');
+  const [telefono, setTelefono] = useState(usuario?.telefono || '+52 231 112 6081');
+  const [notas, setNotas] = useState('');
+  const [cargando, setCargando] = useState(false);
+
+  // Consulta dinámica: Carga todos los barberos registrados en tiempo real
+  useEffect(() => {
+    fetch(`${API_BASE}/barberos`)
+      .then(res => res.json())
+      .then(data => {
+        setBarberos(data);
+        if (data.length > 0) {
+          setIdBarberoSeleccionado(data[0].idBarbero);
+        }
+      })
+      .catch(err => console.error('Error al obtener barberos:', err));
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!idBarberoSeleccionado) {
+      alert('Por favor selecciona un barbero.');
+      return;
+    }
+    setCargando(true);
+
+    const horaNormalizada = horaSeleccionada.length === 5 ? `${horaSeleccionada}:00` : horaSeleccionada;
+
+    const bodyTurno = {
+      idCliente: Number(usuario?.id_usuario || 1),
+      idBarbero: Number(idBarberoSeleccionado),
+      idServicio: Number(servicioSeleccionado.id || 1),
+      fecha: fechaSeleccionada,
+      horaInicio: horaNormalizada,
+      notasCliente: servicioSeleccionado.nombre + (notas ? ` - ${notas}` : ''),
+      sucursal: 'BarberApp Centro',
+      estado: 'CONFIRMADO'
     };
 
-    return (
-        <div className="relative min-h-screen bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-hidden">
+    try {
+      const res = await fetch(`${API_BASE}/turnos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyTurno)
+      });
 
-            <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
-            <div className="absolute bottom-[-100px] left-[-100px] w-[500px] h-[500px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
+      if (res.ok) {
+        alert('¡Turno confirmado y asignado al barbero exitosamente!');
+        navigate('/cliente');
+      } else {
+        const errorText = await res.text();
+        console.error('Error del servidor:', errorText);
+        alert('Error en el servidor al registrar el turno: ' + errorText);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión con el backend.');
+    } finally {
+      setCargando(false);
+    }
+  };
 
-            <header className="relative z-10 flex items-center justify-between mb-8 max-w-7xl mx-auto">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate('/cliente')}
-                        className="w-10 h-10 bg-[#1A251D] border border-[#2D3E31] rounded-xl flex items-center justify-center hover:bg-[#25352a] transition-colors"
-                    >
-                        <ArrowLeft size={18} />
-                    </button>
-                    <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
-                        <img src="/mapache-logo.svg" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
-                    </div>
-                    <div>
-            <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
+  return (
+    <div className="min-h-screen bg-[#111613] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
+      
+      {/* Círculos sólidos de fondo Figma */}
+      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+
+      <header className="flex justify-between items-center mb-8 max-w-6xl mx-auto relative z-10">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/cliente')}>
+          <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
+            <span className="text-2xl filter drop-shadow">🦝</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
               El Mapache Bigotón
             </span>
-                        <h1 className="text-xl font-bold tracking-tight text-white leading-none">
-                            BarberApp
-                        </h1>
-                    </div>
-                </div>
-            </header>
+            <span className="text-xl font-extrabold text-white tracking-wide">
+              BarberApp
+            </span>
+          </div>
+        </div>
 
-            <form onSubmit={handleSubmit} className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl mx-auto">
+        <button 
+          onClick={() => navigate('/cliente')} 
+          className="flex items-center gap-1.5 text-xs text-[#d97706] hover:underline"
+        >
+          <ArrowLeft size={14} /> Volver al panel
+        </button>
+      </header>
 
-                <div className="lg:col-span-7 flex flex-col gap-6">
-                    <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-6 shadow-xl">
-            <span className="text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase block mb-1">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+        
+        {/* Columna Izquierda */}
+        <div className="lg:col-span-7 bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 shadow-2xl space-y-6 backdrop-blur-md">
+          <div>
+            <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider block mb-1">
               Nuevo Turno
             </span>
-                        <h2 className="text-3xl font-extrabold mb-2">Agendar tu cita</h2>
-                        <p className="text-gray-400 text-xs mb-6">
-                            Ingresa tus datos, elige el servicio que deseas y selecciona la hora más conveniente para tu estilo.
-                        </p>
+            <h2 className="text-2xl font-black text-white">Agendar tu cita</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Ingresa tus datos, elige con qué barbero deseas atenderte y selecciona fecha y hora.
+            </p>
+          </div>
 
-                        <div className="flex flex-col gap-4 mb-6">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-300 mb-1.5">Nombre completo</label>
-                                <div className="relative flex items-center">
-                                    <User className="absolute left-3 text-gray-400" size={18} />
-                                    <input
-                                        type="text"
-                                        required
-                                        value={nombre}
-                                        onChange={(e) => setNombre(e.target.value)}
-                                        placeholder="Ej. Mateo Ruiz"
-                                        className="w-full py-3 pl-10 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm"
-                                    />
-                                </div>
-                            </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Nombre completo</label>
+              <div className="relative">
+                <User size={15} className="absolute left-3.5 top-3 text-gray-500" />
+                <input 
+                  type="text" 
+                  disabled
+                  value={usuario?.nombre_completo || 'wicho'} 
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-200 capitalize outline-none"
+                />
+              </div>
+            </div>
 
-                            <div>
-                                <label className="block text-xs font-medium text-gray-300 mb-1.5">Número de teléfono</label>
-                                <div className="relative flex items-center">
-                                    <Phone className="absolute left-3 text-gray-400" size={18} />
-                                    <input
-                                        type="tel"
-                                        required
-                                        value={telefono}
-                                        onChange={(e) => setTelefono(e.target.value)}
-                                        placeholder="Ej. +54 9 11 1234-5678"
-                                        className="w-full py-3 pl-10 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+            {/* Selector de barbero: Renderiza TODOS los que existan en la BD */}
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Seleccionar Barbero</label>
+              <div className="relative">
+                <UserCheck size={15} className="absolute left-3.5 top-3 text-[#ea8536]" />
+                <select
+                  value={idBarberoSeleccionado}
+                  onChange={(e) => setIdBarberoSeleccionado(e.target.value)}
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-[#ea8536] outline-none capitalize"
+                >
+                  {barberos.length === 0 ? (
+                    <option value="">Cargando barberos disponibles...</option>
+                  ) : (
+                    barberos.map(b => (
+                      <option key={b.idBarbero} value={b.idBarbero}>
+                        {b.nombreCompleto} — ({b.tituloRol || 'Barbero'} • {b.experiencia || 1} años exp.)
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
 
-                        <div className="mb-6">
-                            <label className="block text-xs font-medium text-gray-300 mb-3">Selección de fecha y hora</label>
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Número de teléfono</label>
+              <div className="relative">
+                <Phone size={15} className="absolute left-3.5 top-3 text-gray-500" />
+                <input 
+                  type="text" 
+                  value={telefono} 
+                  onChange={(e) => setTelefono(e.target.value)}
+                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white outline-none focus:border-[#ea8536]"
+                />
+              </div>
+            </div>
+          </div>
 
-                            <div className="grid grid-cols-4 gap-2 mb-4">
-                                {[
-                                    { dia: 'HOY', num: '20', mes: 'Marzo' },
-                                    { dia: 'SÁB', num: '21', mes: 'Marzo' },
-                                    { dia: 'LUN', num: '23', mes: 'Marzo' },
-                                    { dia: 'MAR', num: '24', mes: 'Marzo' },
-                                ].map((item, idx) => {
-                                    const id = `${item.dia} ${item.num}`;
-                                    const isSelected = fechaSeleccionada === id;
-                                    return (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={() => setFechaSeleccionada(id)}
-                                            className={`p-3 rounded-xl border flex flex-col items-center transition-all ${
-                                                isSelected
-                                                    ? 'bg-[#111713] border-[#E08A3E] text-[#E08A3E]'
-                                                    : 'bg-[#111713] border-[#2D3E31] text-gray-300 hover:border-gray-500'
-                                            }`}
-                                        >
-                                            <span className="text-[10px] font-bold">{item.dia}</span>
-                                            <span className="text-lg font-extrabold">{item.num}</span>
-                                            <span className="text-[10px] text-gray-400">{item.mes}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-300 mb-2">Selección de fecha</label>
+            <div className="grid grid-cols-4 gap-2.5">
+              {diasOpciones.map((dia) => {
+                const seleccionada = fechaSeleccionada === dia.fechaIso;
+                return (
+                  <button
+                    key={dia.fechaIso}
+                    type="button"
+                    onClick={() => setFechaSeleccionada(dia.fechaIso)}
+                    className={`py-3 px-2 rounded-2xl border text-center transition ${
+                      seleccionada
+                        ? 'border-[#ea8536] bg-[#222e25] text-white'
+                        : 'border-[#243328] bg-[#121914] text-gray-400 hover:border-gray-600'
+                    }`}
+                  >
+                    <span className="text-[10px] font-bold block text-gray-400 uppercase">{dia.label}</span>
+                    <span className="text-lg font-black block my-0.5">{dia.numero}</span>
+                    <span className="text-[10px] text-gray-500 block">{dia.mes}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-2">Mañana</span>
-                            <div className="grid grid-cols-4 gap-2 mb-4">
-                                {['09:00', '09:45', '10:30', '11:15'].map((hora) => (
-                                    <button
-                                        key={hora}
-                                        type="button"
-                                        onClick={() => setHoraSeleccionada(hora)}
-                                        className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                                            horaSeleccionada === hora
-                                                ? 'bg-[#E08A3E] border-[#E08A3E] text-[#111713]'
-                                                : 'bg-[#111713] border-[#2D3E31] text-gray-300 hover:border-gray-500'
-                                        }`}
-                                    >
-                                        {hora}
-                                    </button>
-                                ))}
-                            </div>
+          <div className="space-y-3">
+            <div>
+              <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider block mb-2">Mañana</span>
+              <div className="grid grid-cols-4 gap-2">
+                {horariosManana.map(h => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setHoraSeleccionada(h)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition ${
+                      horaSeleccionada === h 
+                        ? 'bg-[#ea8536] text-[#121814] border-[#ea8536]' 
+                        : 'bg-[#121914] text-gray-300 border-[#243328] hover:border-gray-600'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                            <span className="block text-[10px] text-gray-400 font-bold uppercase mb-2">Tarde</span>
-                            <div className="grid grid-cols-4 gap-2">
-                                {['14:00', '15:30', '17:00', '18:30'].map((hora) => (
-                                    <button
-                                        key={hora}
-                                        type="button"
-                                        onClick={() => setHoraSeleccionada(hora)}
-                                        className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                                            horaSeleccionada === hora
-                                                ? 'bg-[#E08A3E] border-[#E08A3E] text-[#111713]'
-                                                : 'bg-[#111713] border-[#2D3E31] text-gray-300 hover:border-gray-500'
-                                        }`}
-                                    >
-                                        {hora}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            <div>
+              <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider block mb-2">Tarde</span>
+              <div className="grid grid-cols-4 gap-2">
+                {horariosTarde.map(h => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setHoraSeleccionada(h)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition ${
+                      horaSeleccionada === h 
+                        ? 'bg-[#ea8536] text-[#121814] border-[#ea8536]' 
+                        : 'bg-[#121914] text-gray-300 border-[#243328] hover:border-gray-600'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
-                        <div>
-                            <label className="block text-xs font-medium text-gray-300 mb-1.5">Detalles adicionales o notas especiales</label>
-                            <div className="relative flex items-center">
-                                <FileText className="absolute left-3 text-gray-400" size={18} />
-                                <input
-                                    type="text"
-                                    value={notas}
-                                    onChange={(e) => setNotas(e.target.value)}
-                                    placeholder="Ej. Preferencia por navaja tradicional, detalles sobre barba, etc."
-                                    className="w-full py-3 pl-10 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-6 shadow-xl">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                <span className="text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase block">
-                  Pago seguro
-                </span>
-                                <h3 className="text-xl font-bold">Método de pago digital</h3>
-                            </div>
-                            <Lock size={18} className="text-[#E08A3E]" />
-                        </div>
-
-                        <p className="text-xs text-gray-400 mb-4">
-                            Selecciona tu forma de pago en línea para confirmar el apartado de tu turno al instante.
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setMetodoPago('tarjeta')}
-                                className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                                    metodoPago === 'tarjeta'
-                                        ? 'bg-[#111713] border-[#E08A3E]'
-                                        : 'bg-[#111713] border-[#2D3E31] hover:border-gray-500'
-                                }`}
-                            >
-                                <CreditCard size={22} className={metodoPago === 'tarjeta' ? 'text-[#E08A3E]' : 'text-gray-400'} />
-                                <div className="mt-3">
-                                    <span className="block font-bold text-xs">Tarjeta</span>
-                                    <span className="text-[10px] text-gray-400">Débito / Crédito</span>
-                                </div>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setMetodoPago('mercadopago')}
-                                className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                                    metodoPago === 'mercadopago'
-                                        ? 'bg-[#111713] border-[#E08A3E]'
-                                        : 'bg-[#111713] border-[#2D3E31] hover:border-gray-500'
-                                }`}
-                            >
-                                <Wallet size={22} className={metodoPago === 'mercadopago' ? 'text-[#E08A3E]' : 'text-gray-400'} />
-                                <div className="mt-3">
-                                    <span className="block font-bold text-xs">Mercado Pago</span>
-                                    <span className="text-[10px] text-gray-400">Saldo o cuotas</span>
-                                </div>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setMetodoPago('transferencia')}
-                                className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
-                                    metodoPago === 'transferencia'
-                                        ? 'bg-[#111713] border-[#E08A3E]'
-                                        : 'bg-[#111713] border-[#2D3E31] hover:border-gray-500'
-                                }`}
-                            >
-                                <QrCode size={22} className={metodoPago === 'transferencia' ? 'text-[#E08A3E]' : 'text-gray-400'} />
-                                <div className="mt-3">
-                                    <span className="block font-bold text-xs">Transferencia</span>
-                                    <span className="text-[10px] text-gray-400">Pago por SPEI / QR</span>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="bg-[#1A251D] border border-[#2D3E31] rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
-                        <div>
-                            <h3 className="text-xl font-bold mb-1">Elige el servicio</h3>
-                            <p className="text-xs text-gray-400 mb-6">
-                                Todos nuestros servicios incluyen lavado de cabello y bebida de cortesía.
-                            </p>
-
-                            {/* Lista de Servicios */}
-                            <div className="flex flex-col gap-3 mb-6">
-                                {servicios.map((s) => {
-                                    const isSelected = servicioSeleccionado === s.id;
-                                    return (
-                                        <div
-                                            key={s.id}
-                                            onClick={() => setServicioSeleccionado(s.id)}
-                                            className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                                                isSelected
-                                                    ? 'bg-[#111713] border-[#E08A3E]'
-                                                    : 'bg-[#111713] border-[#2D3E31] hover:border-gray-500'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                                                    isSelected ? 'border-[#E08A3E] bg-[#E08A3E]' : 'border-gray-500'
-                                                }`}>
-                                                    {isSelected && <CheckCircle2 size={14} className="text-[#111713]" />}
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-sm leading-none mb-1">{s.nombre}</h4>
-                                                    <span className="text-[10px] text-gray-400">{s.duracion}</span>
-                                                </div>
-                                            </div>
-                                            <span className="font-extrabold text-[#E08A3E] text-base">${s.precio}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Nota de Atención Personalizada */}
-                            <div className="bg-[#111713] border border-[#2D3E31] p-4 rounded-xl mb-6">
-                <span className="block font-bold text-xs text-[#E08A3E] mb-1">
-                  ✂ Atención personalizada
-                </span>
-                                <p className="text-[11px] text-gray-400">
-                                    Si tienes dudas sobre qué corte elegir, tu barbero te guiará al inicio del turno según tus rasgos y objetivos de estilo.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="border-t border-[#2D3E31] pt-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <span className="text-xs text-gray-400">Total a pagar:</span>
-                                <span className="text-2xl font-black text-[#E08A3E]">${servicioActual?.precio}</span>
-                            </div>
-
-                            <button
-                                type="submit"
-                                className="w-full py-3.5 px-6 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-extrabold rounded-xl transition-all shadow-lg cursor-pointer text-sm"
-                            >
-                                Confirmar y Pagar Turno
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-
-            </form>
+          <div>
+            <label className="block text-xs font-bold text-gray-300 mb-1.5">Detalles adicionales o notas especiales</label>
+            <input 
+              type="text" 
+              placeholder="Ej. Preferencia por navaja tradicional, detalles sobre barba, etc." 
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              className="w-full bg-[#121914] border border-[#243328] rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-[#ea8536]"
+            />
+          </div>
         </div>
-    );
+
+        {/* Columna Derecha */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 shadow-2xl backdrop-blur-md">
+            <h3 className="font-bold text-base text-white">Elige el servicio</h3>
+            <p className="text-xs text-gray-400 mt-1 mb-5">
+              Todos nuestros servicios incluyen lavado de cabello y bebida de cortesía.
+            </p>
+
+            <div className="space-y-3">
+              {serviciosCatalogo.map((serv) => {
+                const activo = servicioSeleccionado.id === serv.id;
+                return (
+                  <div
+                    key={serv.id}
+                    onClick={() => setServicioSeleccionado(serv)}
+                    className={`p-4 rounded-2xl border cursor-pointer flex justify-between items-center transition ${
+                      activo 
+                        ? 'border-[#ea8536] bg-[#222e25]' 
+                        : 'border-[#243328] bg-[#121914] hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        activo ? 'border-[#ea8536] bg-[#ea8536]' : 'border-gray-600'
+                      }`}>
+                        {activo && <div className="w-1.5 h-1.5 bg-black rounded-full" />}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs text-white">{serv.nombre}</h4>
+                        <span className="text-[10px] text-gray-400">{serv.duracion}</span>
+                      </div>
+                    </div>
+                    <span className="font-black text-sm text-[#ea8536]">${serv.precio}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="bg-[#141b16] border border-[#25332a] p-4 rounded-2xl mt-5">
+              <span className="text-xs font-bold text-[#ea8536] flex items-center gap-1.5 mb-1">
+                <Scissors size={14} /> Atención personalizada
+              </span>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Tu barbero seleccionado preparará su estación para recibirte puntualmente.
+              </p>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={cargando}
+              className="w-full mt-6 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-black py-3 rounded-xl text-xs transition duration-200 shadow-xl"
+            >
+              {cargando ? 'Registrando cita...' : 'Confirmar Reserva'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

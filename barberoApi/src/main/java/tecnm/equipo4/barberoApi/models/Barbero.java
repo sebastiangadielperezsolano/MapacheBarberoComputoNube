@@ -1,37 +1,27 @@
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-
-@Table (name = "barbero")
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "barbero")
 public class Barbero {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_barbero")
     private Long idBarbero;
 
-    @Column(nullable = false)
-    private int experiencia;
+    @Column(name = "id_usuario")
+    private Long idUsuario;
 
-    @Column(nullable = false)
+    @Column(name = "experiencia")
+    private Integer experiencia;
+
+    @Column(name = "titulo_rol")
     private String tituloRol;
-
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<Turno> turnos = new ArrayList<>();
-
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
-
-    //relacion de muchos a 1, muchos clientes pueden tener un barbero
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<Cliente> clientes = new ArrayList<>();
 }
