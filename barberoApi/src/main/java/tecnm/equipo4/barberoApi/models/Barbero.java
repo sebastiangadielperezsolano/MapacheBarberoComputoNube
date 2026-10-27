@@ -1,6 +1,7 @@
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,6 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 
-@PrimaryKeyJoinColumn(name = "idUsuario")
 @Table (name = "barbero")
 public class Barbero {
     @Id
@@ -66,7 +66,7 @@ public class Barbero {
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
-    //Relacion 1:N con Cliente
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<Cliente> clientes = new ArrayList<>();
+    //Relacion N:M con Cliente
+    @OneToMany(mappedBy = "barbero")
+    private List<ClienteBarbero> clientesBarberos;
 }
