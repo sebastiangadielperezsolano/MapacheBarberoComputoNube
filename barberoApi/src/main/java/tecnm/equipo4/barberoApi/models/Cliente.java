@@ -54,8 +54,7 @@ public class Cliente {
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "idBarbero")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private Barbero barbero;
+    //Cambio a muchos a muchos con cliente (N:M)
+    @OneToMany(mappedBy = "cliente")
+    private List<ClienteBarbero> clientesBarberos;
 }

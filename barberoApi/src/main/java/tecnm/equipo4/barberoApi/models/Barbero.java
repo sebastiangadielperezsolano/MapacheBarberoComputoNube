@@ -66,7 +66,7 @@ public class Barbero {
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
-    //Relacion 1:N con Cliente
-    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
-    private List<Cliente> clientes = new ArrayList<>();
+    //Relacion N:M con Cliente
+    @OneToMany(mappedBy = "barbero")
+    private List<ClienteBarbero> clientesBarberos;
 }
