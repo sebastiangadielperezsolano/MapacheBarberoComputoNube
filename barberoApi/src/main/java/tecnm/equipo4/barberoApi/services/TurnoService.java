@@ -16,7 +16,7 @@ public class TurnoService {
     private final TurnoRepository turnoRepository;
 
     public List<Turno> listarTodos() {
-        return turnoRepository.findAll();
+        return (List<Turno>) turnoRepository.findAll();
     }
 
     public Optional<Turno> buscarPorId(Long idTurno) {

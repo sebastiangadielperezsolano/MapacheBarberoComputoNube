@@ -1,52 +1,60 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.FutureOrPresent;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
-import java.text.DateFormat;
-
-@Entity
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
-
+@Entity
 @Table(name = "turno")
 public class Turno {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idTurno")
+    @Column(name = "id_turno")
     private Long idTurno;
 
-    @NotNull
-    @Column(name = "fecha")
-    @FutureOrPresent
-    private DateFormat fecha;
-
-    @NotNull
-    @Column(name = "horaInicio")
-    @FutureOrPresent
-    private DateFormat horaInicio;
-
-    @NotNull
-    @NotEmpty
     @Column(name = "estado")
     private String estado;
 
-    @NotNull
-    @NotEmpty
-    @Column(name = "notasCliente")
+    @Column(name = "fecha")
+    private LocalDate fecha;
+
+    @Column(name = "hora_inicio")
+    private LocalTime horaInicio;
+
+    @Column(name = "notas_cliente")
     private String notasCliente;
 
-    @NotNull
-    @NotEmpty
     @Column(name = "sucursal")
     private String sucursal;
 
-    @OneToOne(mappedBy = "turno", cascade = CascadeType.ALL)
-    private Pago pago;
+    @Column(name = "id_barbero")
+    private Long idBarbero;
+
+    @Column(name = "id_cliente")
+    private Long idCliente;
+
+    @Column(name = "id_servicio")
+    private Long idServicio;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_barbero", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"turnos", "password"})
+    private Barbero barbero;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_cliente", referencedColumnName = "id_usuario", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"turnos", "password"})
+    private Cliente cliente;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_servicio", insertable = false, updatable = false)
+    private Servicio servicio;
 }

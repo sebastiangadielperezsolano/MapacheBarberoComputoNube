@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Cara de Mapache -->
+  <path d="M12 20L20 12L28 22H36L44 12L52 20L48 38L32 50L16 38L12 20Z" fill="#2E3A31" />
+  <!-- Antifaz oscuro -->
+  <path d="M16 26C16 26 22 24 32 24C42 24 48 26 48 26L44 34C44 34 38 32 32 32C26 32 20 34 20 34L16 26Z" fill="#111713" />
+  <!-- Ojos -->
+  <circle cx="24" cy="28" r="2.5" fill="#E08A3E" />
+  <circle cx="40" cy="28" r="2.5" fill="#E08A3E" />
+  <!-- Bigote en forma de M/Barbero -->
+  <path d="M22 38C26 38 30 42 32 40C34 42 38 38 42 38C44 38 43 42 40 42C35 42 33 39 32 39C31 39 29 42 24 42C21 42 20 38 22 38Z" fill="#E08A3E" />
+</svg>
