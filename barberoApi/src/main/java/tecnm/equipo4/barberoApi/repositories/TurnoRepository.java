@@ -12,4 +12,6 @@ public interface TurnoRepository extends CrudRepository<Turno, Long> {
     List<Turno> findByFecha(LocalDate fecha);
     List<Turno> findByEstado(String estado);
     List<Turno> findBySucursal(String sucursal);
+
+    List<Turno> buscarPorCliente(Long idCliente);
 }
