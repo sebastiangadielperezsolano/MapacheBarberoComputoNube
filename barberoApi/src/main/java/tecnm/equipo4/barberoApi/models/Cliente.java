@@ -1,25 +1,59 @@
 package tecnm.equipo4.barberoApi.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+
 @Table(name = "cliente")
 public class Cliente {
-
     @Id
-    @Column(name = "id_usuario")
-    private Long idUsuario;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idCliente;
 
-    @Column(name = "id_barbero")
-    private Long idBarbero;
+    @NotNull
+    @NotEmpty
+    @Column(name = "nombreCompleto")
+    private String nombreCompleto;
+
+    @NotNull
+    @Size(min = 10, max = 12)
+    @Column(name = "telefono")
+    @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
+    private String telefono;
+
+    @NotNull
+    @Email
+    @Column(name = "email")
+    private String email;
+
+    @NotBlank
+    @Column(name = "password")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$",
+            message = "La contraseña debe tener: al menos una mayúscula, una minúscula, un número y un carácter especial")
+    private String password;
+
+    @NotNull
+    @Column(name = "tipoUsuario")
+    private String tipoUsuario;
 
     @Lob
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;
+
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    private List<Turno> turnos = new ArrayList<>();
+
+    //Cambio a muchos a muchos con cliente (N:M)
+    @OneToMany(mappedBy = "cliente")
+    private List<ClienteBarbero> clientesBarberos;
 }

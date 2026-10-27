@@ -3,11 +3,12 @@ package tecnm.equipo4.barberoApi.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tecnm.equipo4.barberoApi.models.Barbero;
+import tecnm.equipo4.barberoApi.models.Cliente;
 import tecnm.equipo4.barberoApi.models.Turno;
-import tecnm.equipo4.barberoApi.models.Usuario;
 import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
+import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
-import tecnm.equipo4.barberoApi.repositories.UsuarioRepository;
 
 import java.util.*;
 
@@ -18,8 +19,8 @@ import java.util.*;
 public class TurnoController {
 
     private final TurnoRepository turnoRepository;
-    private final UsuarioRepository usuarioRepository;
     private final BarberoRepository barberoRepository;
+    private final ClienteRepository clienteRepository;
 
     // Obtener los turnos del cliente con el nombre real del barbero asignado
     @GetMapping("/cliente/{idCliente}")
@@ -40,7 +41,7 @@ public class TurnoController {
 
             // Buscar el nombre del barbero asignado a este turno
             if (t.getIdBarbero() != null) {
-                Optional<Usuario> barberoOpt = usuarioRepository.findById(t.getIdBarbero());
+                Optional<Barbero> barberoOpt = barberoRepository.findById(t.getIdBarbero());
                 if (barberoOpt.isPresent()) {
                     item.put("nombreBarbero", barberoOpt.get().getNombreCompleto());
                 } else {
@@ -77,9 +78,9 @@ public class TurnoController {
             item.put("idBarbero", t.getIdBarbero());
 
             if (t.getIdCliente() != null) {
-                Optional<Usuario> clienteOpt = usuarioRepository.findById(t.getIdCliente());
+                Optional<Cliente> clienteOpt = clienteRepository.findById(t.getIdCliente());
                 if (clienteOpt.isPresent()) {
-                    Usuario c = clienteOpt.get();
+                    Cliente c = clienteOpt.get();
                     item.put("nombreCliente", c.getNombreCompleto());
                     item.put("telefonoCliente", c.getTelefono() != null ? c.getTelefono() : "+52 231 112 6081");
                 } else {
