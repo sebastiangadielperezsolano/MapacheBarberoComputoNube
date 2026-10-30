@@ -53,7 +53,7 @@ public class CBController {
         URI uri = ucb.path("clienteBarbero/{idCB}").buildAndExpand(created.getIdCB()).toUri();
         return ResponseEntity.created(uri).build();
     }
-
+//actualizar y eliminar
     @PutMapping("/{idCB}")
     public ResponseEntity<Void> update(@PathVariable Long idCB, @RequestBody ClienteBarbero cb) {
         Optional<Cliente> clienteOptional = clienteRepository.findById(cb.getCliente().getIdCliente());
