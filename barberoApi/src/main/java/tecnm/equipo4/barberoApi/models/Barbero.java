@@ -5,6 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,4 +27,14 @@ public class Barbero {
 
     @Column(name = "titulo_rol")
     private String tituloRol;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_sucursal")
+    private Sucursal sucursal;
+
+    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    private List<Turno> turnos = new ArrayList<>();
+
+    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 }
