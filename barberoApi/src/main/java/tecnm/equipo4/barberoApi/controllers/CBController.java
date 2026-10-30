@@ -1,3 +1,4 @@
+//Espero que funione
 package tecnm.equipo4.barberoApi.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -71,7 +72,7 @@ public class CBController {
         }
         return ResponseEntity.notFound().build();
     }
-
+//Eliminar para Justio
     @DeleteMapping("/{idCB}")
     public ResponseEntity<Void> delete(@PathVariable Long idCB) {
         if (cbRepository.findById(idCB).isPresent()) {
