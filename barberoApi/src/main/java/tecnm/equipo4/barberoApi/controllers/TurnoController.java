@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tecnm.equipo4.barberoApi.models.Turno;
-import tecnm.equipo4.barberoApi.models.Usuario;
 import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
 import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
-import tecnm.equipo4.barberoApi.repositories.UsuarioRepository;
 
 import java.util.*;
 

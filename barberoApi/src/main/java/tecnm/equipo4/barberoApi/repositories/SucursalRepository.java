@@ -10,3 +10,5 @@ import java.util.List;
 public interface SucursalRepository extends JpaRepository<Sucursal, Long> {
     List<Sucursal> findByNombreSucursalContainingIgnoreCase(String nombreSucursal);
 }
+
+//hola

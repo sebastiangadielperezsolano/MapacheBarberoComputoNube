@@ -19,7 +19,7 @@ public class Barbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idBarbero;
-
+//hola justin
     @NotNull
     @NotEmpty
     @Column(name = "nombreCompleto")
@@ -50,7 +50,7 @@ public class Barbero {
     @Column(name = "Experiencia")
     @Min(value = 1)
     private int experiencia;
-
+//hola
     @NotNull
     @NotEmpty
     @Column(name = "tituloRol")

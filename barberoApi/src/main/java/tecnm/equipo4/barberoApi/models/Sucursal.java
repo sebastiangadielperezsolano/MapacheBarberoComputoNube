@@ -15,7 +15,7 @@ import java.util.List;
 @Entity
 @Table(name = "sucursal")
 public class Sucursal {
-
+    //hola
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_sucursal")
