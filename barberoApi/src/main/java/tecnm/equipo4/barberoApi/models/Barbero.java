@@ -50,7 +50,7 @@ public class Barbero {
     @Column(name = "Experiencia")
     @Min(value = 1)
     private int experiencia;
-//hola
+
     @NotNull
     @NotEmpty
     @Column(name = "tituloRol")
