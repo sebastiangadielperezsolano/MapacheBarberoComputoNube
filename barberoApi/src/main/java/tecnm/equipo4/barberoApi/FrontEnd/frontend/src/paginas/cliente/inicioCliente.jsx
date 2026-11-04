@@ -33,7 +33,7 @@ export default function InicioCliente() {
   const cargarTurnos = useCallback(async (silencioso = false) => {
     if (!silencioso) setCargando(true);
     try {
-      const res = await fetch(`${API_URL}/api/turnos?idCliente=${idCliente}`);
+      const res = await fetch(`${API_URL}/api/turnos/cliente/${idCliente}`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) setTurnos(data);
@@ -170,7 +170,7 @@ export default function InicioCliente() {
                               Con {proximoTurno.barbero?.nombreCompleto || 'Tu barbero'}
                             </p>
                             <p className="text-[11px] text-gray-500 mt-0.5">
-                              {hhmm(proximoTurno.horaInicio)} • {proximoTurno.sucursal || 'BarberApp Centro'}
+                              {hhmm(proximoTurno.horaInicio)} • {proximoTurno.sucursal?.nombreSucursal || proximoTurno.sucursal || 'BarberApp Centro'}
                               {proximoTurno.servicio?.duracion ? ` • ${proximoTurno.servicio.duracion} min` : ''}
                             </p>
                           </div>

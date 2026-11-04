@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, Lock, Phone, ArrowLeft, ShieldCheck, Award, Briefcase, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,7 @@ import { API_URL, normalizarTelefono, leerError } from '../../api.js';
 export default function RegistroBarbero() {
     const navigate = useNavigate();
 
+    const [sucursales, setSucursales] = useState([]);
     const [formData, setFormData] = useState({
         nombreCompleto: '',
         email: '',
@@ -15,17 +16,38 @@ export default function RegistroBarbero() {
         experiencia: 1,
         tituloRol: 'Barbero Principal',
         tipoUsuario: 'BARBERO',
-        sucursal: 'Matriz Centro'
+        idSucursal: ''
     });
 
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
+    useEffect(() => {
+        const cargarSucursales = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/sucursales`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data) && data.length > 0) {
+                        setSucursales(data);
+                        setFormData((prev) => ({
+                            ...prev,
+                            idSucursal: String(data[0].idSucursal)
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.error('Error al cargar sucursales:', err);
+            }
+        };
+        cargarSucursales();
+    }, []);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: name === 'experiencia' ? parseInt(value) || 0 : value,
+            [name]: name === 'experiencia' ? parseInt(value, 10) || 0 : value,
         });
     };
 
@@ -48,11 +70,21 @@ export default function RegistroBarbero() {
             return;
         }
 
+        if (!formData.idSucursal) {
+            setErrorMsg('Por favor selecciona una sucursal válida.');
+            setLoading(false);
+            return;
+        }
+
         const payload = {
-            ...formData,
             nombreCompleto: formData.nombreCompleto.trim(),
             email: formData.email.trim(),
-            telefono: telefonoLimpio
+            telefono: telefonoLimpio,
+            password: formData.password,
+            experiencia: formData.experiencia,
+            tituloRol: formData.tituloRol,
+            tipoUsuario: 'BARBERO',
+            sucursal: { idSucursal: Number(formData.idSucursal) }
         };
 
         try {
@@ -174,14 +206,20 @@ export default function RegistroBarbero() {
                             <div className="relative flex items-center">
                                 <MapPin className="absolute left-3 text-gray-400" size={18} />
                                 <select
-                                    name="sucursal"
-                                    value={formData.sucursal}
+                                    name="idSucursal"
+                                    value={formData.idSucursal}
                                     onChange={handleChange}
                                     className="w-full py-3 pl-10 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-xl focus:outline-none focus:border-[#E08A3E] text-sm appearance-none cursor-pointer"
                                 >
-                                    <option value="Matriz Centro">Matriz Centro</option>
-                                    <option value="Sucursal Norte">Sucursal Norte</option>
-                                    <option value="Sucursal Sur">Sucursal Sur</option>
+                                    {sucursales.length > 0 ? (
+                                        sucursales.map((s) => (
+                                            <option key={s.idSucursal} value={s.idSucursal}>
+                                                {s.nombreSucursal}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <option value="">Cargando sucursales disponibles...</option>
+                                    )}
                                 </select>
                             </div>
                         </div>
@@ -240,7 +278,7 @@ export default function RegistroBarbero() {
 
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || sucursales.length === 0}
                             className="w-full mt-3 py-3 px-6 bg-[#E08A3E] hover:bg-[#c9762e] disabled:bg-gray-600 text-[#111713] font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer text-sm"
                         >
                             <ShieldCheck size={18} />

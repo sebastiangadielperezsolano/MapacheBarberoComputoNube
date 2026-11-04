@@ -9,6 +9,9 @@ export default function RegistroLocal() {
     const sesionRaw = localStorage.getItem('usuarioSesion') || localStorage.getItem('usuario') || '{}';
     const usuarioSesion = JSON.parse(sesionRaw);
 
+    const idBarberoSesion = usuarioSesion.idBarbero || usuarioSesion.idUsuario || 1;
+    const idSucursalSesion = usuarioSesion.sucursal?.idSucursal;
+
     const [barberos, setBarberos] = useState([]);
     const [formData, setFormData] = useState({
         nombreCompleto: '',
@@ -16,7 +19,7 @@ export default function RegistroLocal() {
         email: '',
         password: '',
         tipoUsuario: 'CLIENTE',
-        idBarbero: usuarioSesion.idUsuario || usuarioSesion.idCliente || usuarioSesion.idBarbero || 1
+        idBarbero: idBarberoSesion
     });
 
     const [loading, setLoading] = useState(false);
@@ -28,14 +31,21 @@ export default function RegistroLocal() {
                 const res = await fetch(`${API_URL}/barbero`);
                 if (res.ok) {
                     const data = await res.json();
-                    setBarberos(data);
+                    if (idSucursalSesion) {
+                        const barberosLocales = data.filter(
+                            (b) => Number(b.sucursal?.idSucursal) === Number(idSucursalSesion)
+                        );
+                        setBarberos(barberosLocales.length > 0 ? barberosLocales : data);
+                    } else {
+                        setBarberos(data);
+                    }
                 }
             } catch (err) {
-                console.log('Error al cargar la lista de barberos.');
+                console.log('Error al cargar la lista de barberos locales.');
             }
         };
         cargarBarberos();
-    }, []);
+    }, [idSucursalSesion]);
 
     const handleChange = (e) => {
         setFormData({

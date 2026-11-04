@@ -16,11 +16,12 @@ export default function AgendarCita() {
     const [barberos, setBarberos] = useState([]);
     const [servicios, setServicios] = useState([]);
     const [preferidos, setPreferidos] = useState([]);
+    const [sucursales, setSucursales] = useState([]);
     const [cargando, setCargando] = useState(true);
 
     const [nombreCliente, setNombreCliente] = useState(usuarioSesion.nombreCompleto || usuarioSesion.nombre || '');
     const [telefonoCliente, setTelefonoCliente] = useState(usuarioSesion.telefono || '');
-    const [sucursalElegida, setSucursalElegida] = useState('Matriz Centro');
+    const [sucursalElegida, setSucursalElegida] = useState('');
     const [idBarberoElegido, setIdBarberoElegido] = useState('');
     const [guardarPreferido, setGuardarPreferido] = useState(false);
     const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
@@ -54,17 +55,25 @@ export default function AgendarCita() {
         const cargarCatalogos = async () => {
             setCargando(true);
             try {
-                const [rb, rs, rp] = await Promise.allSettled([
+                const [rb, rs, rp, rsuc] = await Promise.allSettled([
                     fetch(`${API_URL}/barbero`),
                     fetch(`${API_URL}/api/servicios`),
                     fetch(`${API_URL}/cliente-barbero`),
+                    fetch(`${API_URL}/api/sucursales`)
                 ]);
-                if (rb.status === 'fulfilled' && rb.value.ok) setBarberos(await rb.value.json());
+
+                if (rb.status === 'fulfilled' && rb.value.ok) {
+                    const datosBarberos = await rb.value.json();
+                    const listaBarberos = Array.isArray(datosBarberos) ? datosBarberos : (datosBarberos.data || []);
+                    setBarberos(listaBarberos);
+                }
+
                 if (rs.status === 'fulfilled' && rs.value.ok) {
                     const data = await rs.value.json();
                     setServicios(data);
                     if (data.length > 0) setServicioSeleccionado(data[0]);
                 }
+
                 if (rp.status === 'fulfilled' && rp.value.ok) {
                     const data = await rp.value.json();
                     setPreferidos(
@@ -73,16 +82,46 @@ export default function AgendarCita() {
                             .map((x) => String(x.barbero.idBarbero))
                     );
                 }
-            } catch (err) {
-                console.log('No se pudieron cargar los catálogos de reserva.');
+
+                if (rsuc.status === 'fulfilled' && rsuc.value.ok) {
+                    const listaSuc = await rsuc.value.json();
+                    setSucursales(listaSuc);
+                    if (listaSuc.length > 0) {
+                        setSucursalElegida(String(listaSuc[0].idSucursal));
+                    }
+                }
+            } catch {
+
             } finally {
                 setCargando(false);
             }
         };
         cargarCatalogos();
-    }, []);
+    }, [idCliente, usuarioSesion.rol, navigate]);
 
-    const enSucursal = (b) => b.sucursal === sucursalElegida || (!b.sucursal && sucursalElegida === 'Matriz Centro');
+    const enSucursal = (b) => {
+        if (!sucursalElegida) return true;
+
+        const sucElegidaObj = sucursales.find((s) => String(s.idSucursal) === String(sucursalElegida));
+        const nombreSucElegida = sucElegidaObj?.nombreSucursal?.toLowerCase().trim();
+
+        if (!b.sucursal) return false;
+
+        if (typeof b.sucursal === 'object') {
+            const idSuc = b.sucursal.idSucursal ?? b.sucursal.id_sucursal;
+            if (idSuc && String(idSuc) === String(sucursalElegida)) return true;
+
+            const nombreSuc = b.sucursal.nombreSucursal?.toLowerCase().trim();
+            if (nombreSucElegida && nombreSuc && nombreSucElegida === nombreSuc) return true;
+        }
+
+        if (String(b.sucursal) === String(sucursalElegida)) return true;
+
+        if (nombreSucElegida && String(b.sucursal).toLowerCase().trim() === nombreSucElegida) return true;
+
+        return false;
+    };
+
     const barberosDisponibles = barberos
         .filter(enSucursal)
         .sort((a, b) => Number(preferidos.includes(idDe(b))) - Number(preferidos.includes(idDe(a))));
@@ -93,7 +132,7 @@ export default function AgendarCita() {
             .sort((a, b) => Number(preferidos.includes(idDe(b))) - Number(preferidos.includes(idDe(a))));
         setIdBarberoElegido(lista.length > 0 ? idDe(lista[0]) : '');
         setGuardarPreferido(false);
-    }, [sucursalElegida, barberos, preferidos]);
+    }, [sucursalElegida, barberos, preferidos, sucursales]);
 
     useEffect(() => {
         if (!idBarberoElegido) {
@@ -135,15 +174,16 @@ export default function AgendarCita() {
         }
 
         setEnviando(true);
+
         const nuevoTurno = {
             fecha: fechaSeleccionada,
             horaInicio: `${horaSeleccionada}:00`,
             estado: 'PENDIENTE',
-            sucursal: sucursalElegida,
             notasCliente: notas || 'Sin notas especiales',
-            cliente: { idCliente: Number(idCliente) },
-            barbero: { idBarbero: Number(idBarberoElegido) },
-            servicio: { idServicio: Number(servicioSeleccionado.idServicio) },
+            idCliente: Number(idCliente),
+            idBarbero: Number(idBarberoElegido),
+            idServicio: Number(servicioSeleccionado.idServicio),
+            idSucursal: Number(sucursalElegida)
         };
 
         try {
@@ -164,15 +204,14 @@ export default function AgendarCita() {
                                 estatus: true,
                             }),
                         });
-                    } catch (_) {  }
+                    } catch (_) { }
                 }
                 alert('¡Cita solicitada! Tu turno quedó en estado PENDIENTE hasta que el barbero lo confirme.');
                 navigate('/cliente');
             } else {
                 alert(await leerError(res, 'No se pudo agendar la cita.'));
             }
-        } catch (error) {
-            console.error('Error de conexión:', error);
+        } catch {
             alert('Error al conectar con la API.');
         } finally {
             setEnviando(false);
@@ -218,9 +257,9 @@ export default function AgendarCita() {
                             <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
                         </div>
                         <div>
-              <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
-                El Mapache Bigotón
-              </span>
+                            <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
+                                El Mapache Bigotón
+                            </span>
                             <h1 className="text-xl font-extrabold tracking-tight text-white leading-none">BarberApp</h1>
                         </div>
                     </div>
@@ -230,9 +269,9 @@ export default function AgendarCita() {
                     <div className="lg:col-span-7 bg-[#1A251D] border border-[#2D3E31] p-6 sm:p-8 rounded-3xl flex flex-col justify-between shadow-2xl">
                         <div className="space-y-5">
                             <div>
-                <span className="text-[10px] font-extrabold text-[#E08A3E] tracking-widest uppercase block mb-1">
-                  NUEVO TURNO
-                </span>
+                                <span className="text-[10px] font-extrabold text-[#E08A3E] tracking-widest uppercase block mb-1">
+                                    NUEVO TURNO
+                                </span>
                                 <h2 className="text-3xl font-black text-white tracking-tight">Agendar tu cita</h2>
                                 <p className="text-xs text-gray-400 mt-1">
                                     Ingresa tus datos, elige la sucursal y selecciona a tu barbero.
@@ -278,9 +317,15 @@ export default function AgendarCita() {
                                         onChange={(e) => setSucursalElegida(e.target.value)}
                                         className="w-full py-3 pl-11 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-2xl focus:outline-none focus:border-[#E08A3E] text-xs font-medium appearance-none cursor-pointer"
                                     >
-                                        <option value="Matriz Centro">Matriz Centro</option>
-                                        <option value="Sucursal Norte">Sucursal Norte</option>
-                                        <option value="Sucursal Sur">Sucursal Sur</option>
+                                        {sucursales.length > 0 ? (
+                                            sucursales.map((s) => (
+                                                <option key={s.idSucursal} value={s.idSucursal}>
+                                                    {s.nombreSucursal}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option value="">Cargando sucursales disponibles...</option>
+                                        )}
                                     </select>
                                 </div>
                             </div>
