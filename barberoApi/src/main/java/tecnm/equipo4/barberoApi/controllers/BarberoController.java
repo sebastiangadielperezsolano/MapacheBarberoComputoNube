@@ -15,7 +15,6 @@ import java.util.Optional;
 @CrossOrigin(origins = "*")
 @RequestMapping("/barbero")
 public class BarberoController {
-
     private final BarberoRepository barberoRepository;
 
     @GetMapping

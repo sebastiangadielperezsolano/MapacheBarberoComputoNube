@@ -1,40 +1,33 @@
 package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-
+import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "cliente")
 public class Cliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idCliente;
 
-    @NotNull
-    @NotEmpty
+    @NotBlank
     @Column(name = "nombreCompleto")
     private String nombreCompleto;
 
-    @NotNull
+    @NotBlank
     @Size(min = 10, max = 12)
     @Column(name = "telefono")
     @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
     private String telefono;
 
-    @NotNull
+    @NotBlank
     @Email
     @Column(name = "email")
     private String email;
@@ -42,10 +35,10 @@ public class Cliente {
     @NotBlank
     @Column(name = "password")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!]).{8,}$",
-            message = "La contraseña debe tener: al menos una mayúscula, una minúscula, un número y un carácter especial")
+            message = "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial")
     private String password;
 
-    @NotNull
+    @NotBlank
     @Column(name = "tipoUsuario")
     private String tipoUsuario;
 
@@ -62,6 +55,6 @@ public class Cliente {
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "cliente")
-    private List<ClienteBarbero> clientesBarberos;
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    private List<ClienteBarbero> clientesBarberos = new ArrayList<>();
 }

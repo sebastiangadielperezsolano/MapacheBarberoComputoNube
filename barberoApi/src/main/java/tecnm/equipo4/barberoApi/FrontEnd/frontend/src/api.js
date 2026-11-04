@@ -1,4 +1,3 @@
-// Colócalo en src/api.js  (ajusta la ruta '../api' en los imports si tus pantallas están en otra carpeta)
 export const API_URL = 'http://localhost:8080';
 
 export const leerSesion = () => {
@@ -10,14 +9,12 @@ export const leerSesion = () => {
   }
 };
 
-// Deja solo 10 dígitos (quita espacios, guiones, "+" y la lada 52 si viene completa)
 export const normalizarTelefono = (tel = '') => {
   let d = String(tel).replace(/\D/g, '');
   if (d.length === 12 && d.startsWith('52')) d = d.slice(2);
   return d;
 };
 
-// Extrae el mensaje {"error": "..."} que ahora devuelve el backend
 export const leerError = async (res, porDefecto = 'Ocurrió un error.') => {
   try {
     const txt = await res.text();

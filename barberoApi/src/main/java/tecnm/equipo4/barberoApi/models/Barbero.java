@@ -1,40 +1,34 @@
 package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-
+import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "barbero")
 public class Barbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idBarbero;
 
-    @NotNull
-    @NotEmpty
+    @NotBlank
     @Column(name = "nombreCompleto")
     private String nombreCompleto;
 
-    @NotNull
+    @NotBlank
     @Size(min = 10, max = 12)
     @Column(name = "telefono")
     @Pattern(regexp = "^\\d{3}[-\\s]?\\d{3}[-\\s]?\\d{4}$")
     private String telefono;
 
-    @NotNull
+    @NotBlank
     @Email
     @Column(name = "email")
     private String email;
@@ -45,26 +39,27 @@ public class Barbero {
             message = "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial")
     private String password;
 
-    @NotNull
+    @NotBlank
     @Column(name = "tipoUsuario")
     private String tipoUsuario;
 
     @NotNull
-    @Column(name = "Experiencia")
+    @Column(name = "experiencia")
     @Min(value = 1)
     private int experiencia;
 
-    @NotNull
-    @NotEmpty
+    @NotBlank
     @Column(name = "tituloRol")
     private String tituloRol;
-
-    @Column(name = "sucursal")
-    private String sucursal;
 
     @Lob
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_sucursal")
+    @JsonIgnoreProperties({"barberos", "hibernateLazyInitializer", "handler"})
+    private Sucursal sucursal;
 
     @JsonIgnore
     @ToString.Exclude
@@ -81,6 +76,6 @@ public class Barbero {
     @JsonIgnore
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "barbero")
-    private List<ClienteBarbero> clientesBarberos;
+    @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
+    private List<ClienteBarbero> clientesBarberos = new ArrayList<>();
 }

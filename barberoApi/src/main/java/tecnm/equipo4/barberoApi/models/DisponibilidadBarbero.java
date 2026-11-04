@@ -2,19 +2,15 @@ package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.FutureOrPresent;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.validation.constraints.*;
+import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "disponibilidadB")
 public class DisponibilidadBarbero {
     @Id

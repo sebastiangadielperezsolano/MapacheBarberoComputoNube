@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BarberoApiApplication {
+public class    BarberoApiApplication {
 
 
     public static void main(String[] args) {

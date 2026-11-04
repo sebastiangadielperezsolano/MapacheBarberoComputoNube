@@ -3,15 +3,12 @@ package tecnm.equipo4.barberoApi.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 
 @Entity
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "cliente_barbero")
 public class ClienteBarbero {
     @Id
@@ -24,11 +21,11 @@ public class ClienteBarbero {
 
     @ManyToOne
     @JoinColumn(name = "idCliente")
-    @JsonIgnoreProperties({"foto"})
+    @JsonIgnoreProperties({"foto", "turnos", "clientesBarberos"})
     private Cliente cliente;
 
     @ManyToOne
     @JoinColumn(name = "idBarbero")
-    @JsonIgnoreProperties({"foto"})
+    @JsonIgnoreProperties({"foto", "turnos", "disponibilidades", "clientesBarberos", "sucursal"})
     private Barbero barbero;
 }

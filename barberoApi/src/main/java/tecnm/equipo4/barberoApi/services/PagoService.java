@@ -1,4 +1,3 @@
-
 package tecnm.equipo4.barberoApi.services;
 
 import lombok.RequiredArgsConstructor;
@@ -12,7 +11,6 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class PagoService {
-
     private final PagoRepository pagoRepository;
 
     public Iterable<Pago> listarTodos() {

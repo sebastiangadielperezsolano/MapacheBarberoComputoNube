@@ -5,10 +5,12 @@ import org.springframework.stereotype.Service;
 import tecnm.equipo4.barberoApi.models.Barbero;
 import tecnm.equipo4.barberoApi.models.Cliente;
 import tecnm.equipo4.barberoApi.models.Servicio;
+import tecnm.equipo4.barberoApi.models.Sucursal;
 import tecnm.equipo4.barberoApi.models.Turno;
 import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
 import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 import tecnm.equipo4.barberoApi.repositories.ServicioRepository;
+import tecnm.equipo4.barberoApi.repositories.SucursalRepository;
 import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
 
 import java.util.List;
@@ -17,11 +19,11 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class TurnoService {
-
     private final TurnoRepository turnoRepository;
     private final ClienteRepository clienteRepository;
     private final BarberoRepository barberoRepository;
     private final ServicioRepository servicioRepository;
+    private final SucursalRepository sucursalRepository;
 
     public List<Turno> listarTodos() {
         return (List<Turno>) turnoRepository.findAll();
@@ -47,6 +49,9 @@ public class TurnoService {
         return turnoRepository.findByCliente_IdClienteOrderByIdTurnoDesc(idCliente);
     }
 
+    public List<Turno> listarPorSucursal(Long idSucursal) {
+        return turnoRepository.findBySucursal_IdSucursal(idSucursal);
+    }
 
     public List<Turno> obtenerHorariosOcupados(Long idBarbero, String fecha) {
         return turnoRepository.findByBarbero_IdBarberoAndFechaAndEstadoNot(idBarbero, fecha, "CANCELADO");
@@ -72,6 +77,13 @@ public class TurnoService {
             Servicio servicioReal = servicioRepository.findById(idServicioVal)
                     .orElseThrow(() -> new RuntimeException("Servicio no encontrado con ID: " + idServicioVal));
             turno.setServicio(servicioReal);
+        }
+
+        Long idSucursalVal = (turno.getSucursal() != null) ? turno.getSucursal().getIdSucursal() : null;
+        if (idSucursalVal != null) {
+            Sucursal sucursalReal = sucursalRepository.findById(idSucursalVal)
+                    .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con ID: " + idSucursalVal));
+            turno.setSucursal(sucursalReal);
         }
 
         return turnoRepository.save(turno);

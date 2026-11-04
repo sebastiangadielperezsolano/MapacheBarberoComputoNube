@@ -2,14 +2,12 @@ package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
 @Table(name = "turno")
 public class Turno {
     @Id
@@ -29,20 +27,23 @@ public class Turno {
     @Column(name = "notasCliente")
     private String notasCliente;
 
-    @Column(name = "sucursal")
-    private String sucursal;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_sucursal")
+    @JsonIgnoreProperties({"barberos", "hibernateLazyInitializer", "handler"})
+    private Sucursal sucursal;
 
     @ManyToOne
     @JoinColumn(name = "idCliente")
-    @JsonIgnoreProperties({"foto"})
+    @JsonIgnoreProperties({"foto", "turnos", "clientesBarberos"})
     private Cliente cliente;
 
     @ManyToOne
     @JoinColumn(name = "idBarbero")
-    @JsonIgnoreProperties({"foto"})
+    @JsonIgnoreProperties({"foto", "turnos", "disponibilidades", "clientesBarberos", "sucursal"})
     private Barbero barbero;
 
     @ManyToOne
     @JoinColumn(name = "idServicio")
+    @JsonIgnoreProperties({"turnos"})
     private Servicio servicio;
 }

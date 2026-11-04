@@ -10,6 +10,7 @@ import InicioBarbero from './paginas/barbero/inicioBarbero.jsx';
 import RegistroB from './paginas/barbero/registroBarbero';
 import RegistroLocal from './paginas/barbero/registroLocal';
 import AjustesB from './paginas/barbero/ajustesBarbero';
+import Local from './paginas/barbero/nuevoLocal';
 
 function App() {
     return (
@@ -36,6 +37,8 @@ function App() {
                 <Route path="/ajustesc" element={<AjustesC />} />
 
                 <Route path="/ajustesb" element={<AjustesB />} />
+
+                <Route path="/nLocal" element={<Local />} />
 
             </Routes>
         </BrowserRouter>

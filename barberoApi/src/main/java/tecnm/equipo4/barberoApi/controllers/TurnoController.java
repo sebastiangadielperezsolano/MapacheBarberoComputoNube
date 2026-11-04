@@ -1,11 +1,9 @@
 package tecnm.equipo4.barberoApi.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tecnm.equipo4.barberoApi.models.Turno;
-import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
 import tecnm.equipo4.barberoApi.services.TurnoService;
 
 import java.util.List;
@@ -13,96 +11,67 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/turnos")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 @RequiredArgsConstructor
 public class TurnoController {
 
     private final TurnoService turnoService;
-    private final TurnoRepository turnoRepository;
 
     @GetMapping
-    public ResponseEntity<List<Turno>> listar(
-            @RequestParam(required = false) String fecha,
-            @RequestParam(required = false) String estado,
-            @RequestParam(required = false) Long idBarbero,
-            @RequestParam(required = false) Long idCliente) {
-
-        if (idBarbero != null) {
-            return ResponseEntity.ok(turnoService.listarPorBarbero(idBarbero));
-        }
-        if (idCliente != null) {
-            return ResponseEntity.ok(turnoService.listarPorCliente(idCliente));
-        }
-        if (fecha != null && !fecha.isBlank()) {
-            return ResponseEntity.ok(turnoService.listarPorFecha(fecha));
-        }
-        if (estado != null && !estado.isBlank()) {
-            return ResponseEntity.ok(turnoService.listarPorEstado(estado));
-        }
-
+    public ResponseEntity<List<Turno>> listarTodos() {
         return ResponseEntity.ok(turnoService.listarTodos());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Turno> obtener(@PathVariable Long id) {
-        return turnoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
+    public ResponseEntity<Turno> obtenerTurnoPorId(@PathVariable Long id) {
+        Optional<Turno> turno = turnoService.buscarPorId(id);
+        return turno.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<?> agendar(@RequestBody Turno turno) {
-        try {
-            System.out.println(">>> RECIBIENDO TURNO: " + turno);
-            Turno nuevoTurno = turnoService.agendar(turno);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevoTurno);
-        } catch (Exception e) {
-            System.err.println("¡ERROR CRÍTICO AL AGENDAR!");
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    "{\"error\": \"" + e.getClass().getName() + " - " + e.getMessage() + "\"}"
-            );
-        }
+    @GetMapping("/cliente/{idCliente}")
+    public ResponseEntity<List<Turno>> obtenerTurnosPorCliente(@PathVariable Long idCliente) {
+        return ResponseEntity.ok(turnoService.listarPorCliente(idCliente));
+    }
+
+    @GetMapping("/barbero/{idBarbero}")
+    public ResponseEntity<List<Turno>> obtenerTurnosPorBarbero(@PathVariable Long idBarbero) {
+        return ResponseEntity.ok(turnoService.listarPorBarbero(idBarbero));
+    }
+
+    @GetMapping("/sucursal/{idSucursal}")
+    public ResponseEntity<List<Turno>> obtenerTurnosPorSucursal(@PathVariable Long idSucursal) {
+        return ResponseEntity.ok(turnoService.listarPorSucursal(idSucursal));
     }
 
     @GetMapping("/ocupados")
-    public ResponseEntity<List<String>> obtenerHorariosOcupados(
+    public ResponseEntity<List<Turno>> obtenerHorariosOcupados(
             @RequestParam Long idBarbero,
             @RequestParam String fecha) {
+        return ResponseEntity.ok(turnoService.obtenerHorariosOcupados(idBarbero, fecha));
+    }
+
+    @PostMapping
+    public ResponseEntity<?> agendarTurno(@RequestBody Turno turno) {
         try {
-            List<Turno> turnosOcupados = turnoService.obtenerHorariosOcupados(idBarbero, fecha);
-
-            List<String> horas = turnosOcupados.stream()
-                    .map(Turno::getHoraInicio)
-                    .toList();
-
-            return ResponseEntity.ok(horas);
+            Turno nuevoTurno = turnoService.agendar(turno);
+            return ResponseEntity.ok(nuevoTurno);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("Error al registrar turno: " + e.getMessage());
         }
     }
 
-    @PutMapping("/{idTurno}")
-    public ResponseEntity<?> updateEstado(@PathVariable Long idTurno, @RequestBody Turno turnoActualizado) {
-        Optional<Turno> turnoExistente = turnoRepository.findById(idTurno);
-        if (turnoExistente.isPresent()) {
-            Turno turno = turnoExistente.get();
-            turno.setEstado(turnoActualizado.getEstado());
-            turnoRepository.save(turno);
-            return ResponseEntity.ok(turno);
+    @PutMapping("/{id}/estado")
+    public ResponseEntity<?> cambiarEstadoTurno(@PathVariable Long id, @RequestParam String nuevoEstado) {
+        Optional<Turno> turnoActualizado = turnoService.cambiarEstado(id, nuevoEstado);
+        if (turnoActualizado.isPresent()) {
+            return ResponseEntity.ok(turnoActualizado.get());
         }
         return ResponseEntity.notFound().build();
     }
 
-    @PatchMapping("/{id}/estado")
-    public ResponseEntity<Turno> actualizarEstado(@PathVariable Long id, @RequestParam String nuevoEstado) {
-        return turnoService.cambiarEstado(id, nuevoEstado)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminarTurno(@PathVariable Long id) {
         turnoService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

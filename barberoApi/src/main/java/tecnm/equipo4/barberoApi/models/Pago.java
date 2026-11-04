@@ -1,14 +1,9 @@
-//WErty
 package tecnm.equipo4.barberoApi.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.validation.constraints.*;
+import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
@@ -17,7 +12,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Table(name = "pago")
 public class Pago {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_pago")
@@ -28,15 +22,15 @@ public class Pago {
     @Digits(integer = 6, fraction = 2)
     private BigDecimal montoTotal;
 
-    @NotNull
+    @NotBlank
     @Column(name = "metodo")
     private String metodo;
 
-    @NotNull
+    @NotBlank
     @Column(name = "estado")
     private String estado;
 
-    @NotNull
+    @NotBlank
     @Column(name = "ultimos_digitos")
     private String ultimosDigitos;
 
