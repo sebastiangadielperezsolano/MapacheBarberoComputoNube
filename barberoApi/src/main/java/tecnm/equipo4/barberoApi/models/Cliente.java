@@ -1,10 +1,14 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +17,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-
 @Table(name = "cliente")
 public class Cliente {
     @Id
@@ -50,10 +53,15 @@ public class Cliente {
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;
 
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
 
-    //Cambio a muchos a muchos con cliente (N:M)
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "cliente")
     private List<ClienteBarbero> clientesBarberos;
 }

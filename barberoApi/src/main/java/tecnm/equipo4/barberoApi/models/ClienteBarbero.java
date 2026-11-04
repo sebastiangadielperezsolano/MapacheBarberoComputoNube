@@ -1,20 +1,18 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+
 
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@ToString
-
-@Table(name = "cliente-barbero")
+@Table(name = "cliente_barbero")
 public class ClienteBarbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,15 +20,15 @@ public class ClienteBarbero {
 
     @NotNull
     @Column(name = "estatus")
-    private Boolean estatus;
+    private Boolean estatus = true;
 
     @ManyToOne
     @JoinColumn(name = "idCliente")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @JsonIgnoreProperties({"foto"})
     private Cliente cliente;
 
     @ManyToOne
     @JoinColumn(name = "idBarbero")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @JsonIgnoreProperties({"foto"})
     private Barbero barbero;
 }

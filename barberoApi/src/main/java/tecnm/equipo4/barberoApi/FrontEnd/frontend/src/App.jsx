@@ -1,43 +1,45 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Páginas públicas
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Inicio from './paginas/publica/inicio';
 import InicioSesion from './paginas/publica/inicioSesion';
 import Registro from './paginas/publica/registro';
+import InicioCliente from './paginas/cliente/inicioCliente.jsx';
+import RegistroC from './paginas/cliente/registroCita';
+import Historial from './paginas/cliente/historialCliente.jsx';
+import AjustesC from './paginas/cliente/ajustesCliente';
+import InicioBarbero from './paginas/barbero/inicioBarbero.jsx';
+import RegistroB from './paginas/barbero/registroBarbero';
+import RegistroLocal from './paginas/barbero/registroLocal';
+import AjustesB from './paginas/barbero/ajustesBarbero';
 
-// Páginas del Cliente
-import InicioCliente from './paginas/cliente/inicioCliente';
-import RegistroCita from './paginas/cliente/registroCita';
-import HistorialCliente from './paginas/cliente/historialCliente';
-import ConfiguracionCliente from './paginas/cliente/configuracionCliente';
+function App() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Inicio />} />
 
-// Páginas del Barbero
-import InicioBarbero from './paginas/barbero/inicioBarbero';
-import RegistroBarbero from './paginas/barbero/registroBarbero';
+                <Route path="/login" element={<InicioSesion />} />
 
-export default function App() {
-  return (
-    <Router>
-      <Routes>
-        {/* Rutas Públicas */}
-        <Route path="/" element={<Inicio />} />
-        <Route path="/iniciar-sesion" element={<InicioSesion />} />
-        <Route path="/registro" element={<Registro />} />
+                <Route path="/registro" element={<Registro />} />
 
-        {/* Rutas Cliente */}
-        <Route path="/cliente" element={<InicioCliente />} />
-        <Route path="/cliente/agendar" element={<RegistroCita />} />
-        <Route path="/cliente/historial" element={<HistorialCliente />} />
-        <Route path="/cliente/configuracion" element={<ConfiguracionCliente />} />
+                <Route path="/cliente" element={<InicioCliente />} />
 
-        {/* Rutas Barbero */}
-        <Route path="/barbero" element={<InicioBarbero />} />
-        <Route path="/barbero/registro" element={<RegistroBarbero />} />
+                <Route path="/agendar" element={<RegistroC />} />
 
-        {/* Redirección por defecto */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
-  );
+                <Route path="/barbero" element={<InicioBarbero />} />
+
+                <Route path="/empleado" element={<RegistroB />} />
+
+                <Route path="/registrol" element={<RegistroLocal />} />
+
+                <Route path="/historialC" element={<Historial />} />
+
+                <Route path="/ajustesc" element={<AjustesC />} />
+
+                <Route path="/ajustesb" element={<AjustesB />} />
+
+            </Routes>
+        </BrowserRouter>
+    )
 }
+
+export default App

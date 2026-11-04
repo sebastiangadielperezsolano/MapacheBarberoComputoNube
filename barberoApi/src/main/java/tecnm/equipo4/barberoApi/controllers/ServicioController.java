@@ -18,17 +18,11 @@ public class ServicioController {
     private final ServicioService servicioService;
 
     @GetMapping
-    public ResponseEntity<?> listar(@RequestParam(required = false) String nombre) {
-        try {
-            if (nombre != null && !nombre.trim().isEmpty()) {
-                return ResponseEntity.ok(servicioService.buscarPorNombre(nombre));
-            }
-            return ResponseEntity.ok(servicioService.listarTodos());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al consultar servicios: " + e.getMessage());
+    public ResponseEntity<List<Servicio>> listar(@RequestParam(required = false) String nombre) {
+        if (nombre != null && !nombre.isBlank()) {
+            return ResponseEntity.ok(servicioService.buscarPorNombre(nombre));
         }
+        return ResponseEntity.ok(servicioService.listarTodos());
     }
 
     @GetMapping("/{id}")

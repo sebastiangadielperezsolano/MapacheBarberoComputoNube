@@ -9,17 +9,16 @@ import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
 
 import java.net.URI;
 import java.util.Optional;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 @RequestMapping("/barbero")
 public class BarberoController {
+
     private final BarberoRepository barberoRepository;
 
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<Iterable<Barbero>> findAll() {
         return ResponseEntity.ok(barberoRepository.findAll());
     }
@@ -27,13 +26,14 @@ public class BarberoController {
     @GetMapping("/{idBarbero}")
     public ResponseEntity<Barbero> findById(@PathVariable Long idBarbero) {
         Optional<Barbero> barberoOptional = barberoRepository.findById(idBarbero);
-        return barberoOptional.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return barberoOptional.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<Barbero> create(@RequestBody Barbero newBarbero, UriComponentsBuilder ucb) {
         Barbero savedBarbero = barberoRepository.save(newBarbero);
-        URI uri = ucb.path("barbero/{idBarbero}")
+        URI uri = ucb.path("/barbero/{idBarbero}")
                 .buildAndExpand(savedBarbero.getIdBarbero())
                 .toUri();
         return ResponseEntity.created(uri).body(savedBarbero);
@@ -42,7 +42,7 @@ public class BarberoController {
     @PutMapping("/{idBarbero}")
     public ResponseEntity<Void> update(@PathVariable Long idBarbero, @RequestBody Barbero putBarbero) {
         Optional<Barbero> barberoAnt = barberoRepository.findById(idBarbero);
-        if (!barberoAnt.isPresent()) {
+        if (barberoAnt.isPresent()) {
             putBarbero.setIdBarbero(idBarbero);
             barberoRepository.save(putBarbero);
             return ResponseEntity.noContent().build();

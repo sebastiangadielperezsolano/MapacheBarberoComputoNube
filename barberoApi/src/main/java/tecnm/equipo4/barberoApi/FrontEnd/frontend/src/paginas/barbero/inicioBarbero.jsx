@@ -1,543 +1,395 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Search, LogOut, CheckCircle, Clock, Phone, Plus, Bell, Scissors, BarChart3, X, User } from 'lucide-react';
+import {
+  LogOut, Calendar, Clock, User, Phone, MapPin, CheckCircle, XCircle, AlertCircle,
+  Scissors, UserPlus, ShieldCheck, Settings, Plus, CreditCard, PieChart
+} from 'lucide-react';
+import { API_URL, leerSesion, fechaLocalISO, fechaHoraTurno, cambiarEstadoTurno } from '../../api.js';
 
-const API_BASE = 'http://localhost:8081/api';
+const hhmm = (h) => (h ? String(h).substring(0, 5) : '');
+
+const AvatarLetras = ({ nombre }) => {
+  const iniciales = nombre ? nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'CL';
+  return (
+      <div className="w-10 h-10 rounded-full bg-[#2D3E31] text-gray-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+        {iniciales}
+      </div>
+  );
+};
 
 export default function InicioBarbero() {
   const navigate = useNavigate();
-
-  const [usuario] = useState(() => {
-    try {
-      const sesion = localStorage.getItem('usuario');
-      return sesion ? JSON.parse(sesion) : { id_usuario: 2, nombre_completo: 'Barbero' };
-    } catch {
-      return { id_usuario: 2, nombre_completo: 'Barbero' };
-    }
-  });
-
+  const [usuario] = useState(leerSesion);
   const [turnos, setTurnos] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroRecordatorio, setFiltroRecordatorio] = useState(false);
+  const [vista, setVista] = useState('todos');
+  const [procesando, setProcesando] = useState(null);
 
-  // Estados para Modal de Nuevo Turno
-  const [mostrarModalNuevo, setMostrarModalNuevo] = useState(false);
-  const [clientesDisponibles, setClientesDisponibles] = useState([]);
-  const [nuevoTurnoData, setNuevoTurnoData] = useState({
-    idCliente: '',
-    servicio: 'Corte clásico',
-    fecha: new Date().toISOString().split('T')[0],
-    hora: '14:00'
-  });
+  const idBarbero = usuario?.idBarbero || usuario?.idUsuario;
+  const nombreBarbero = usuario?.nombreCompleto || usuario?.nombre || 'Barbero';
+  const rolBarbero = usuario?.tituloRol || 'Barbero principal';
 
-  // Modal para ver teléfono de llamada
-  const [modalLlamada, setModalLlamada] = useState(null);
+  const emailBarbero = (usuario?.email || '').toLowerCase();
+  let avatarsGuardados = {};
+  try {
+    avatarsGuardados = JSON.parse(localStorage.getItem('avatars_usuarios') || '{}');
+  } catch {
+    avatarsGuardados = {};
+  }
+  const fotoBarbero = avatarsGuardados[emailBarbero] || usuario?.avatar || usuario?.foto || '/defecto.jpg';
 
-  useEffect(() => {
-    cargarAgenda();
-    cargarClientes();
-  }, []);
-
-  const cargarAgenda = async () => {
-    setCargando(true);
+  const cargarTurnos = useCallback(async (silencioso = false) => {
+    if (!silencioso) setCargando(true);
     try {
-      const id = usuario?.id_usuario || 2;
-      const res = await fetch(`${API_BASE}/turnos/barbero/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setTurnos(data);
+      const [rt, rc] = await Promise.allSettled([
+        fetch(`${API_URL}/api/turnos?idBarbero=${idBarbero}`),
+        fetch(`${API_URL}/cliente-barbero`)
+      ]);
+      if (rt.status === 'fulfilled' && rt.value.ok) {
+        const data = await rt.value.json();
+        if (Array.isArray(data)) setTurnos(data);
       }
-    } catch (err) {
-      console.error('Error al cargar agenda del barbero:', err);
+      if (rc.status === 'fulfilled' && rc.value.ok) {
+        const data = await rc.value.json();
+        setClientes(data.filter((x) => x.estatus !== false && x.cliente));
+      }
+    } catch (e) {
+      console.error('Error al cargar las citas del barbero', e);
     } finally {
       setCargando(false);
     }
-  };
+  }, [idBarbero]);
 
-  const cargarClientes = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/usuarios/clientes`);
-      if (res.ok) {
-        const data = await res.json();
-        setClientesDisponibles(data);
-        if (data.length > 0) {
-          setNuevoTurnoData(prev => ({ ...prev, idCliente: data[0].idUsuario || data[0].id_usuario }));
-        }
-      }
-    } catch (err) {
-      console.error('Error cargando clientes:', err);
-    }
-  };
-
-  const handleCerrarSesion = () => {
-    localStorage.removeItem('usuario');
-    navigate('/iniciar-sesion');
-  };
-
-  // Confirmar cita desde la tarjeta Próxima Cita
-  const handleConfirmarCita = async (idTurno) => {
-    try {
-      const res = await fetch(`${API_BASE}/turnos/${idTurno}/confirmar`, { method: 'PUT' });
-      if (res.ok) {
-        alert('¡Cita confirmada en la base de datos!');
-        cargarAgenda();
-      } else {
-        alert('No se pudo confirmar la cita.');
-      }
-    } catch (err) {
-      alert('Error de conexión con el servidor.');
-    }
-  };
-
-  // Guardar Nuevo Turno agendado por el Barbero
-  const handleCrearTurno = async (e) => {
-    e.preventDefault();
-    if (!nuevoTurnoData.idCliente) {
-      alert('Selecciona un cliente válido.');
+  useEffect(() => {
+    if (!usuario || !idBarbero || usuario.rol === 'CLIENTE') {
+      localStorage.removeItem('usuarioSesion');
+      localStorage.removeItem('usuario');
+      navigate('/login');
       return;
     }
+    cargarTurnos();
+    const timer = setInterval(() => cargarTurnos(true), 15000);
+    return () => clearInterval(timer);
+  }, [usuario, idBarbero, cargarTurnos, navigate]);
 
-    const payload = {
-      idCliente: Number(nuevoTurnoData.idCliente),
-      idBarbero: Number(usuario?.id_usuario || 2),
-      idServicio: 1,
-      fecha: nuevoTurnoData.fecha,
-      horaInicio: nuevoTurnoData.hora.length === 5 ? `${nuevoTurnoData.hora}:00` : nuevoTurnoData.hora,
-      notasCliente: nuevoTurnoData.servicio,
-      sucursal: 'BarberApp Centro',
-      estado: 'CONFIRMADO'
-    };
+  const cerrarSesion = () => {
+    localStorage.removeItem('usuarioSesion');
+    localStorage.removeItem('usuario');
+    navigate('/login');
+  };
 
+  const actualizar = async (t, nuevoEstado, pregunta) => {
+    if (pregunta && !window.confirm(pregunta)) return;
+    setProcesando(t.idTurno);
     try {
-      const res = await fetch(`${API_BASE}/turnos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        alert('¡Turno registrado y añadido a tu agenda!');
-        setMostrarModalNuevo(false);
-        cargarAgenda();
-      } else {
-        alert('Error al registrar el turno.');
-      }
+      await cambiarEstadoTurno(t.idTurno, nuevoEstado, 'BARBERO', idBarbero);
+      await cargarTurnos(true);
     } catch (err) {
-      alert('Error de conexión con el servidor.');
+      alert(err.message || 'No se pudo actualizar la cita.');
+    } finally {
+      setProcesando(null);
     }
   };
 
-  // Filtrado de citas (por búsqueda o por recordatorio de 1 día antes)
-  const fechaManana = new Date();
-  fechaManana.setDate(fechaManana.getDate() + 1);
-  const mananaIso = fechaManana.toISOString().split('T')[0];
+  const estadoDe = (t) => (t.estado || 'PENDIENTE').toUpperCase();
+  const pendientes = turnos.filter((t) => estadoDe(t) === 'PENDIENTE');
+  const confirmadas = turnos.filter((t) => estadoDe(t) === 'CONFIRMADO');
+  const historial = turnos.filter((t) => ['FINALIZADO', 'COMPLETADO', 'CANCELADO'].includes(estadoDe(t)));
+  const confirmadasHoy = confirmadas.filter((t) => t.fecha === fechaLocalISO()).length;
+  const completadasHoy = turnos.filter((t) => (estadoDe(t) === 'FINALIZADO' || estadoDe(t) === 'COMPLETADO') && t.fecha === fechaLocalISO()).length;
 
-  const turnosFiltrados = turnos.filter(t => {
-    const coincideTexto = (t.nombreCliente?.toLowerCase().includes(busqueda.toLowerCase()) || 
-                           t.notasCliente?.toLowerCase().includes(busqueda.toLowerCase()));
-    if (filtroRecordatorio) {
-      return coincideTexto && t.fecha === mananaIso;
-    }
-    return coincideTexto;
-  });
+  const porFecha = (a, b) => fechaHoraTurno(a) - fechaHoraTurno(b);
+  const lista =
+      vista === 'pendientes' ? [...pendientes].sort(porFecha)
+          : vista === 'confirmadas' ? [...confirmadas].sort(porFecha)
+              : vista === 'historial' ? [...historial].sort(porFecha)
+                  : [...turnos].sort(porFecha);
 
-  const proximaCita = turnos.find(t => t.estado === 'CONFIRMADO') || turnos[0];
-  const nombreBarbero = usuario?.nombre_completo || 'Barbero';
+  const proximaCita = [...confirmadas].sort(porFecha)[0];
 
   return (
-    <div className="min-h-screen bg-[#111613] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
-      
-      {/* Círculos sólidos de fondo Figma */}
-      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
-      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="relative min-h-screen w-full bg-[#111713] text-white font-sans p-4 sm:p-6 lg:p-8 flex flex-col justify-between selection:bg-[#E08A3E] selection:text-[#111713] overflow-x-hidden">
 
-      {/* HEADER SUPERIOR FIGMA */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 relative z-10 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
-            <span className="text-2xl filter drop-shadow">🦝</span>
-          </div>
-          <div className="leading-tight">
-            <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
-              El Mapache Bigotón
-            </span>
-            <span className="text-xl font-extrabold text-white tracking-wide">
-              BarberApp
-            </span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search size={14} className="absolute left-3.5 top-3 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Buscar cliente o servicio..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full bg-[#18211b] border border-[#25332a] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-[#ea8536]"
-            />
-          </div>
+        <div className="absolute top-[-150px] right-[-150px] w-[700px] h-[700px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
+        <div className="absolute bottom-[-150px] left-[-150px] w-[700px] h-[700px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
-          <div className="flex items-center gap-2 bg-[#18211b] border border-[#25332a] px-3 py-1.5 rounded-xl text-xs">
-            <div className="w-6 h-6 rounded-full bg-[#27382d] flex items-center justify-center text-[10px] font-bold text-white">
-              {(nombreBarbero[0] || 'B').toUpperCase()}
-            </div>
-            <span className="font-bold text-white capitalize text-xs">{nombreBarbero}</span>
-          </div>
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto flex-1 flex flex-col gap-6">
 
-          <button 
-            onClick={handleCerrarSesion}
-            className="flex items-center gap-1.5 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-black px-4 py-2 rounded-xl text-xs transition shadow-md"
-          >
-            <LogOut size={14} className="rotate-180" /> Salir
-          </button>
-        </div>
-      </header>
-
-      {/* CONTENIDO PRINCIPAL */}
-      <div className="max-w-7xl mx-auto space-y-7 relative z-10">
-        
-        {/* BANNER BIENVENIDA */}
-        <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-5 backdrop-blur-md">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#243328] border-2 border-[#ea8536] flex items-center justify-center text-3xl shadow-lg">
-              💈
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-white capitalize tracking-tight">
-                Hola, {nombreBarbero}
-              </h1>
-              <p className="text-xs text-gray-400 mt-1">
-                Gestiona tu agenda, revisa el rendimiento del día y prepara la próxima atención desde un solo lugar.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => { setFiltroRecordatorio(false); setBusqueda(''); cargarAgenda(); }}
-              className={`border text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 ${
-                !filtroRecordatorio ? 'bg-[#ea8536] text-[#121814] border-[#ea8536]' : 'bg-[#212c24] text-gray-200 border-[#2e3e33]'
-              }`}
-            >
-              <Calendar size={14} /> Ver agenda
-            </button>
-            <button 
-              onClick={() => setMostrarModalNuevo(true)}
-              className="bg-[#ea8536] hover:bg-[#d97528] text-[#121814] text-xs font-black px-4 py-2.5 rounded-xl transition shadow flex items-center gap-1.5"
-            >
-              <Plus size={14} /> + Nuevo turno
-            </button>
-          </div>
-        </div>
-
-        {/* 4 TARJETAS DE MÉTRICAS */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-2xl p-5 shadow-lg">
-            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Turnos registrados</span>
-            <span className="text-2xl font-black text-white">{turnos.length}</span>
-            <span className="text-[10px] text-gray-500 block mt-1">En tu agenda personal</span>
-          </div>
-
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-2xl p-5 shadow-lg">
-            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Ingresos estimados</span>
-            <span className="text-2xl font-black text-[#ea8536]">${turnos.length * 150}</span>
-            <span className="text-[10px] text-gray-500 block mt-1">Promedio por servicios</span>
-          </div>
-
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-2xl p-5 shadow-lg">
-            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Clientes registrados</span>
-            <span className="text-2xl font-black text-white">{clientesDisponibles.length}</span>
-            <span className="text-[10px] text-gray-500 block mt-1">Disponibles en el sistema</span>
-          </div>
-
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-2xl p-5 shadow-lg">
-            <span className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Recordatorios (Mañana)</span>
-            <span className="text-2xl font-black text-emerald-400">
-              {turnos.filter(t => t.fecha === mananaIso).length}
-            </span>
-            <span className="text-[10px] text-gray-500 block mt-1">Citas a 1 día de realizarse</span>
-          </div>
-        </div>
-
-        {/* DOS COLUMNAS: AGENDA DIARIA Y GESTIÓN RÁPIDA */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
-          
-          {/* AGENDA DIARIA */}
-          <div className="lg:col-span-8 bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 shadow-2xl space-y-5">
-            <div className="flex justify-between items-center border-b border-[#25332a] pb-4">
-              <div>
-                <h3 className="font-bold text-base text-white">
-                  {filtroRecordatorio ? 'Recordatorios (Citas de Mañana)' : 'Agenda de Clientes'}
-                </h3>
-                <span className="text-[11px] text-gray-400">
-                  {turnosFiltrados.length} turnos encontrados para este barbero
-                </span>
+          <header className="w-full flex items-center justify-between gap-4 bg-[#161F1A] border border-[#2D3E31]/60 px-6 py-4 rounded-3xl shadow-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
+                <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
               </div>
-              <span className="text-[11px] bg-[#121914] text-gray-300 font-semibold px-3 py-1.5 rounded-full border border-[#2b3a30]">
-                {filtroRecordatorio ? `Mañana (${mananaIso})` : 'Todos los turnos'}
+              <div>
+              <span className="block text-[9px] tracking-widest text-[#E08A3E] font-extrabold uppercase">
+                EL MAPACHE BIGOTÓN
               </span>
-            </div>
-
-            {/* Listado dinámico de turnos */}
-            <div className="space-y-3">
-              {cargando ? (
-                <p className="text-xs text-gray-400 py-4">Cargando turnos de MySQL...</p>
-              ) : turnosFiltrados.length === 0 ? (
-                <div className="text-center py-10 text-xs text-gray-500">
-                  {filtroRecordatorio 
-                    ? 'No hay citas agendadas exactamente para mañana.' 
-                    : 'Aún ningún cliente ha agendado una cita con este barbero.'}
-                </div>
-              ) : (
-                turnosFiltrados.map((t) => (
-                  <div 
-                    key={t.idTurno} 
-                    className="p-4 bg-[#141b16] border border-[#243128] hover:border-[#ea8536]/40 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-black text-[#ea8536] w-14">
-                        {t.horaInicio ? String(t.horaInicio).substring(0, 5) : '10:00'}
-                      </span>
-                      <div className="w-9 h-9 rounded-xl bg-[#212c24] border border-[#2e3e33] flex items-center justify-center text-xs font-bold text-white uppercase">
-                        {(t.nombreCliente ? t.nombreCliente[0] : 'C')}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-white capitalize">
-                          {t.nombreCliente || `Cliente #${t.idCliente}`}
-                        </h4>
-                        <span className="text-[11px] text-gray-400 block mt-0.5">
-                          {t.notasCliente || 'Corte'} • {t.fecha} • {t.telefonoCliente}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${
-                        t.estado === 'CONFIRMADO' 
-                          ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' 
-                          : 'bg-red-950/80 text-red-400 border border-red-800'
-                      }`}>
-                        {t.estado}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* GESTIÓN RÁPIDA & PRÓXIMA CITA */}
-          <div className="lg:col-span-4 space-y-6">
-            
-            <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-bold text-sm text-white">Gestión rápida</h4>
-                <span className="text-[10px] text-gray-500">Acciones</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <button 
-                  onClick={() => setMostrarModalNuevo(true)}
-                  className="bg-[#141b16] hover:bg-[#1e2a22] border border-[#243128] p-3 rounded-xl flex items-center gap-2 text-gray-300 font-semibold transition"
-                >
-                  <Plus size={14} className="text-[#ea8536]" /> + Nuevo turno
-                </button>
-                <button 
-                  onClick={() => setFiltroRecordatorio(!filtroRecordatorio)}
-                  className={`border p-3 rounded-xl flex items-center gap-2 font-semibold transition ${
-                    filtroRecordatorio 
-                      ? 'bg-[#ea8536] text-[#121814] border-[#ea8536]' 
-                      : 'bg-[#141b16] text-gray-300 border-[#243128] hover:bg-[#1e2a22]'
-                  }`}
-                >
-                  <Bell size={14} className={filtroRecordatorio ? 'text-[#121814]' : 'text-[#ea8536]'} /> Recordatorios
-                </button>
-                <button 
-                  onClick={() => alert('Servicios activos: Corte clásico, Corte + barba, Afeitado, Peinado, Degradado.')}
-                  className="bg-[#141b16] hover:bg-[#1e2a22] border border-[#243128] p-3 rounded-xl flex items-center gap-2 text-gray-300 font-semibold transition"
-                >
-                  <Scissors size={14} className="text-[#ea8536]" /> Servicios
-                </button>
-                <button 
-                  onClick={() => alert(`Reporte del barbero ${nombreBarbero}: ${turnos.length} turnos completados y activos en MySQL.`)}
-                  className="bg-[#141b16] hover:bg-[#1e2a22] border border-[#243128] p-3 rounded-xl flex items-center gap-2 text-gray-300 font-semibold transition"
-                >
-                  <BarChart3 size={14} className="text-[#ea8536]" /> Reportes
-                </button>
+                <h1 className="text-xl font-bold tracking-tight text-white leading-none">BarberApp</h1>
               </div>
             </div>
 
-            {/* PRÓXIMA CITA */}
-            <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-bold text-sm text-white">Próxima cita</h4>
-                <span className="text-[10px] text-[#ea8536] font-bold">Atención prioritaria</span>
-              </div>
-
-              {proximaCita ? (
-                <div className="bg-[#141b16] border border-[#243128] p-4 rounded-2xl space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#27382d] flex items-center justify-center text-xs font-black text-white uppercase">
-                      {(proximaCita.nombreCliente ? proximaCita.nombreCliente[0] : 'C')}
-                    </div>
-                    <div>
-                      <h5 className="font-bold text-xs text-white capitalize">
-                        {proximaCita.nombreCliente || `Cliente #${proximaCita.idCliente}`}
-                      </h5>
-                      <span className="text-[10px] text-gray-400 block mt-0.5">
-                        {proximaCita.notasCliente} • {proximaCita.fecha} ({String(proximaCita.horaInicio).substring(0, 5)})
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <button 
-                      onClick={() => setModalLlamada({
-                        nombre: proximaCita.nombreCliente,
-                        telefono: proximaCita.telefonoCliente || '+52 231 112 6081'
-                      })}
-                      className="bg-[#212c24] hover:bg-[#2b3a2f] border border-[#2e3e33] text-gray-300 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5"
-                    >
-                      <Phone size={12} /> Llamar
-                    </button>
-                    <button 
-                      onClick={() => handleConfirmarCita(proximaCita.idTurno)}
-                      className="bg-[#ea8536] hover:bg-[#d97528] text-[#121814] text-xs font-black py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow"
-                    >
-                      <CheckCircle size={12} /> Confirmar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-xs text-gray-500">
-                  No hay citas próximas en tu lista.
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* MODAL 1: NUEVO TURNO AGENDADO POR EL BARBERO */}
-      {mostrarModalNuevo && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[#18211b] border border-[#25332a] w-full max-w-md p-6 rounded-3xl shadow-2xl relative">
-            <button 
-              onClick={() => setMostrarModalNuevo(false)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white"
-            >
-              <X size={18} />
-            </button>
-
-            <h3 className="text-lg font-bold text-white mb-1">Registrar Nuevo Turno</h3>
-            <p className="text-xs text-gray-400 mb-5">Asigna una cita eligiendo a un cliente registrado en la base de datos.</p>
-
-            <form onSubmit={handleCrearTurno} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">Cliente</label>
-                <select
-                  value={nuevoTurnoData.idCliente}
-                  onChange={(e) => setNuevoTurnoData({ ...nuevoTurnoData, idCliente: e.target.value })}
-                  className="w-full bg-[#121914] border border-[#243328] rounded-xl p-2.5 text-xs text-white outline-none focus:border-[#ea8536]"
-                >
-                  {clientesDisponibles.map(c => (
-                    <option key={c.idUsuario || c.id_usuario} value={c.idUsuario || c.id_usuario}>
-                      {c.nombreCompleto || c.nombre_completo} ({c.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">Servicio</label>
-                <select
-                  value={nuevoTurnoData.servicio}
-                  onChange={(e) => setNuevoTurnoData({ ...nuevoTurnoData, servicio: e.target.value })}
-                  className="w-full bg-[#121914] border border-[#243328] rounded-xl p-2.5 text-xs text-white outline-none focus:border-[#ea8536]"
-                >
-                  <option value="Corte clásico">Corte clásico — $150</option>
-                  <option value="Corte + barba">Corte + barba — $250</option>
-                  <option value="Afeitado clásico">Afeitado clásico — $200</option>
-                  <option value="Corte degradado">Corte degradado — $160</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    required
-                    value={nuevoTurnoData.fecha}
-                    onChange={(e) => setNuevoTurnoData({ ...nuevoTurnoData, fecha: e.target.value })}
-                    className="w-full bg-[#121914] border border-[#243328] rounded-xl p-2 text-xs text-white outline-none focus:border-[#ea8536]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-300 mb-1">Hora</label>
-                  <input
-                    type="time"
-                    required
-                    value={nuevoTurnoData.hora}
-                    onChange={(e) => setNuevoTurnoData({ ...nuevoTurnoData, hora: e.target.value })}
-                    className="w-full bg-[#121914] border border-[#243328] rounded-xl p-2 text-xs text-white outline-none focus:border-[#ea8536]"
-                  />
-                </div>
-              </div>
-
+            <div className="flex items-center gap-4">
               <button
-                type="submit"
-                className="w-full mt-3 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-black py-2.5 rounded-xl text-xs transition"
+                  onClick={() => navigate('/registrol')}
+                  className="hidden sm:flex items-center gap-2 py-2.5 px-6 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-bold rounded-full transition-all text-xs shadow-md cursor-pointer"
               >
-                Confirmar y Agendar
+                <Plus size={16} strokeWidth={3} />
+                <span>Nuevo turno</span>
               </button>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* MODAL 2: LLAMAR AL CLIENTE */}
-      {modalLlamada && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-[#18211b] border border-[#25332a] w-full max-w-sm p-6 rounded-3xl shadow-2xl text-center relative">
-            <button 
-              onClick={() => setModalLlamada(null)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white"
-            >
-              <X size={18} />
-            </button>
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden sm:block">
+                  <span className="block text-xs font-bold text-white leading-tight">{nombreBarbero}</span>
+                  <span className="text-[10px] text-gray-400 block">{rolBarbero}</span>
+                </div>
+                <div
+                    className="w-10 h-10 rounded-full overflow-hidden border border-[#E08A3E] bg-[#1A251D] cursor-pointer hover:scale-105 transition-all"
+                    onClick={() => navigate('/ajustesb')}
+                >
+                  <img src={fotoBarbero} alt={nombreBarbero} className="w-full h-full object-cover" onError={(e) => { e.target.src = '/defecto.jpg'; }} />
+                </div>
+                <button
+                    onClick={cerrarSesion}
+                    title="Cerrar sesión"
+                    className="w-10 h-10 bg-[#1A251D] border border-[#2D3E31] hover:border-red-500/50 hover:text-red-400 text-gray-300 rounded-2xl flex items-center justify-center transition cursor-pointer shadow-inner ml-1"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            </div>
+          </header>
 
-            <div className="w-14 h-14 bg-[#243328] border-2 border-[#ea8536] rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
-              📞
+          <div className="w-full flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {['todos', 'pendientes', 'confirmadas', 'historial'].map((tab) => (
+                  <button
+                      key={tab}
+                      onClick={() => setVista(tab)}
+                      className={`py-2 px-5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          vista === tab ? 'bg-[#2D3E31] text-white border border-[#2D3E31]' : 'bg-transparent text-gray-400 hover:text-white'
+                      }`}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+              ))}
             </div>
 
-            <h3 className="text-base font-bold text-white capitalize">{modalLlamada.nombre}</h3>
-            <p className="text-sm font-black text-[#ea8536] mt-2 mb-4 tracking-wider">
-              {modalLlamada.telefono}
-            </p>
+            <div className="flex items-center gap-3 text-xs">
+            <span className="bg-[#161F1A] border border-[#2D3E31] px-4 py-2 rounded-full text-gray-300 font-medium">
+              Hoy · 09:00-19:00
+            </span>
+              <span className="bg-[#E08A3E]/10 text-[#E08A3E] border border-[#E08A3E]/30 px-4 py-2 rounded-full font-bold">
+              {turnos.length} turnos totales
+            </span>
+            </div>
+          </div>
 
-            <div className="flex gap-2">
-              <a 
-                href={`tel:${modalLlamada.telefono}`}
-                className="flex-1 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] text-xs font-black py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
+          <div className="bg-[#161F1A] border border-[#2D3E31] p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-6 w-full">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#E08A3E] bg-[#111713] flex-shrink-0 shadow-lg">
+                <img src={fotoBarbero} alt={nombreBarbero} className="w-full h-full object-cover" onError={(e) => { e.target.src = '/defecto.jpg'; }} />
+              </div>
+              <div>
+              <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block mb-1">
+                PANEL PROFESIONAL {usuario?.sucursal ? `• ${usuario.sucursal}` : ''}
+              </span>
+                <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Hola, {nombreBarbero}</h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Gestiona tu agenda, revisa el rendimiento del día y prepara la próxima atención desde un solo lugar.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 w-full md:w-auto">
+              <button
+                  onClick={() => navigate('/ajustesb')}
+                  className="w-full md:w-auto py-3 px-6 bg-[#111713] hover:bg-[#25352a] text-gray-300 border border-[#2D3E31] font-bold text-xs rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 shadow-inner"
               >
-                <Phone size={13} /> Marcar ahora
-              </a>
-              <button 
-                onClick={() => setModalLlamada(null)}
-                className="bg-[#243329] text-gray-300 text-xs font-semibold px-4 py-2.5 rounded-xl transition border border-[#334538]"
-              >
-                Cerrar
+                <Settings size={15} className="text-[#E08A3E]" />
+                <span>Ver agenda / Perfil</span>
               </button>
             </div>
           </div>
-        </div>
-      )}
 
-    </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Turnos completados', value: completadasHoy, sub: `${pendientes.length} pendientes por confirmar`, icon: CheckCircle, col: 'text-emerald-400' },
+              { label: 'Ingreso estimado', value: `$${completadasHoy * 180}`, sub: 'Calculado sobre servicios', icon: CreditCard, col: 'text-[#E08A3E]' },
+              { label: 'Citas hoy', value: confirmadasHoy + pendientes.length, sub: 'Clientes programados', icon: User, col: 'text-[#E08A3E]' },
+              { label: 'Ocupación', value: '85%', sub: 'Alta demanda en sucursal', icon: PieChart, col: 'text-blue-400' }
+            ].map((stat, i) => (
+                <div key={i} className="bg-[#161F1A] border border-[#2D3E31] p-5 rounded-3xl shadow-lg flex flex-col justify-between">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{stat.label}</span>
+                    <div className="w-8 h-8 rounded-xl bg-[#111713] border border-[#2D3E31] flex items-center justify-center">
+                      <stat.icon size={16} className={stat.col} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-3xl font-black text-white block mb-1">{stat.value}</span>
+                    <p className="text-[10px] text-gray-400">{stat.sub}</p>
+                  </div>
+                </div>
+            ))}
+          </div>
+
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+
+            <div className="lg:col-span-8 bg-[#161F1A] border border-[#2D3E31] rounded-3xl p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-black text-white tracking-tight">Agenda diaria</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{turnos.length} clientes programados en turnos próximos.</p>
+                </div>
+                <span className="text-xs text-[#E08A3E] bg-[#111713] border border-[#2D3E31] px-3.5 py-1.5 rounded-xl font-bold">
+                Hoy • 09:00 - 19:00
+              </span>
+              </div>
+
+              {cargando ? (
+                  <div className="p-12 text-center text-xs text-gray-400">Sincronizando agenda...</div>
+              ) : lista.length === 0 ? (
+                  <div className="p-12 text-center flex flex-col items-center">
+                    <Scissors size={40} className="text-[#E08A3E] mb-3 opacity-60" />
+                    <p className="text-xs text-gray-400">No hay turnos registrados en esta vista.</p>
+                  </div>
+              ) : (
+                  <div className="flex flex-col gap-3">
+                    {lista.map((t) => {
+                      const est = estadoDe(t);
+                      const ocupado = procesando === t.idTurno;
+                      const horaCorta = hhmm(t.horaInicio);
+
+                      return (
+                          <div key={t.idTurno} className="bg-[#111713] border border-[#2D3E31] p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-[#E08A3E]/40 transition shadow-md">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div className="w-16 text-center flex-shrink-0">
+                                <span className="text-xs font-black text-[#E08A3E] block">{horaCorta}</span>
+                                <span className="text-[9px] text-gray-500 block uppercase font-bold tracking-wider">Hrs</span>
+                              </div>
+                              <div className="w-px h-10 bg-[#2D3E31] hidden sm:block" />
+                              <div className="flex items-center gap-3">
+                                <AvatarLetras nombre={t.cliente?.nombreCompleto} />
+                                <div>
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="font-bold text-white text-sm">{t.cliente?.nombreCompleto || 'Cliente'}</span>
+                                  </div>
+                                  <p className="text-xs text-gray-400">
+                                    {t.servicio?.nombreServicio || 'Servicio de barbería'} {t.servicio?.duracion ? `• ${t.servicio.duracion} min` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                              {est === 'PENDIENTE' && (
+                                  <>
+                                    <button disabled={ocupado} onClick={() => actualizar(t, 'CONFIRMADO')} className="py-2 px-4 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-extrabold text-xs rounded-xl transition cursor-pointer shadow">
+                                      Aceptar
+                                    </button>
+                                    <button disabled={ocupado} onClick={() => actualizar(t, 'CANCELADO', '¿Rechazar este turno?')} className="py-2 px-4 bg-[#161F1A] border border-[#2D3E31] text-gray-300 text-xs font-semibold rounded-xl transition cursor-pointer">
+                                      Rechazar
+                                    </button>
+                                  </>
+                              )}
+                              {est === 'CONFIRMADO' && (
+                                  <>
+                                    <button disabled={ocupado} onClick={() => actualizar(t, 'FINALIZADO', '¿Marcar como atendido y finalizado?')} className="py-2 px-4 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-extrabold text-xs rounded-xl transition cursor-pointer shadow">
+                                      Finalizar
+                                    </button>
+                                    <button disabled={ocupado} onClick={() => actualizar(t, 'CANCELADO', '¿Cancelar esta cita?')} className="py-2 px-4 bg-[#161F1A] border border-[#2D3E31] text-gray-300 text-xs font-semibold rounded-xl transition cursor-pointer">
+                                      Cancelar
+                                    </button>
+                                  </>
+                              )}
+                              {est !== 'PENDIENTE' && est !== 'CONFIRMADO' && (
+                                  <span className="text-xs font-bold px-3 py-1 bg-[#161F1A] border border-[#2D3E31] text-gray-400 rounded-xl">
+                            {est}
+                          </span>
+                              )}
+                            </div>
+                          </div>
+                      );
+                    })}
+                  </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-4 flex flex-col gap-6">
+
+              <div className="bg-[#161F1A] border border-[#2D3E31] rounded-3xl p-6 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase">Gestión rápida</span>
+                  <span className="text-[10px] text-gray-500">Acceso directos</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button onClick={() => navigate('/registrol')} className="p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-2xl text-left transition cursor-pointer flex flex-col gap-1">
+                    <Plus size={16} className="text-[#E08A3E]" />
+                    <span className="text-xs font-bold text-white">Nuevo turno</span>
+                  </button>
+                  <button onClick={() => navigate('/empleado')} className="p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-2xl text-left transition cursor-pointer flex flex-col gap-1">
+                    <ShieldCheck size={16} className="text-[#E08A3E]" />
+                    <span className="text-xs font-bold text-white">Barberos</span>
+                  </button>
+                  <button onClick={() => navigate('/ajustesb')} className="p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-2xl text-left transition cursor-pointer flex flex-col gap-1">
+                    <Settings size={16} className="text-[#E08A3E]" />
+                    <span className="text-xs font-bold text-white">Configurar</span>
+                  </button>
+                  <button onClick={() => navigate('/registrol')} className="p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-2xl text-left transition cursor-pointer flex flex-col gap-1">
+                    <UserPlus size={16} className="text-[#E08A3E]" />
+                    <span className="text-xs font-bold text-white">Clientes</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-[#161F1A] border border-[#2D3E31] rounded-3xl p-6 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase">Próxima cita</span>
+                  <span className="text-[10px] bg-[#E08A3E]/20 text-[#E08A3E] border border-[#E08A3E]/30 px-2 py-0.5 rounded-full font-bold">
+                  En puerta
+                </span>
+                </div>
+
+                {proximaCita ? (
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-black text-base text-white">{proximaCita.servicio?.nombreServicio || 'Servicio de barbería'}</h4>
+                        <p className="text-xs text-gray-400 mt-0.5">Cliente: <strong className="text-white">{proximaCita.cliente?.nombreCompleto}</strong></p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-[#111713] border border-[#2D3E31] p-2.5 rounded-xl">
+                          <span className="text-[9px] text-gray-500 block">Horario</span>
+                          <strong className="text-white">{hhmm(proximaCita.horaInicio)} hs</strong>
+                        </div>
+                        <div className="bg-[#111713] border border-[#2D3E31] p-2.5 rounded-xl">
+                          <span className="text-[9px] text-gray-500 block">Sucursal</span>
+                          <strong className="text-white truncate block">{proximaCita.sucursal || 'Matriz'}</strong>
+                        </div>
+                      </div>
+                      <button
+                          onClick={() => actualizar(proximaCita, 'FINALIZADO', '¿Marcar como atendida esta cita?')}
+                          className="w-full py-3 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-extrabold rounded-xl text-xs transition cursor-pointer shadow-md"
+                      >
+                        Finalizar atención
+                      </button>
+                    </div>
+                ) : (
+                    <p className="text-xs text-gray-400 py-4 text-center">No hay citas confirmadas pendientes de atención inmediata.</p>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <footer className="relative z-10 w-full max-w-[1400px] mx-auto text-center text-xs text-gray-600 mt-12 py-4 border-t border-[#2D3E31]/40">
+          El Mapache Bigotón &copy; BarberApp Dashboard
+        </footer>
+      </div>
   );
 }

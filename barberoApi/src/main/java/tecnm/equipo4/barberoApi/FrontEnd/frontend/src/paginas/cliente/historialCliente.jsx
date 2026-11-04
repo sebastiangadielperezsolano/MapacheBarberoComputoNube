@@ -1,132 +1,180 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, CheckCircle, XCircle } from 'lucide-react';
-
-const API_BASE = 'http://localhost:8081/api';
+import { ArrowLeft, Calendar, Clock, CheckCircle, XCircle, AlertCircle, Scissors, User } from 'lucide-react';
+import { API_URL, leerSesion, esActivo, cambiarEstadoTurno } from '../../api.js';
 
 export default function HistorialCliente() {
   const navigate = useNavigate();
-
-  const [usuario] = useState(() => {
-    try {
-      const sesion = localStorage.getItem('usuario');
-      return sesion ? JSON.parse(sesion) : null;
-    } catch {
-      return null;
-    }
-  });
-
+  const [usuario] = useState(leerSesion);
   const [turnos, setTurnos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
+  const idCliente = usuario?.idCliente || usuario?.idUsuario;
+
+  const cargarHistorial = useCallback(async (silencioso = false) => {
+    if (!silencioso) setCargando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/turnos?idCliente=${idCliente}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setTurnos(data);
+      }
+    } catch (e) {
+      console.error('Error al cargar historial:', e);
+    } finally {
+      setCargando(false);
+    }
+  }, [idCliente]);
+
   useEffect(() => {
-    if (!usuario || !usuario.id_usuario) {
-      navigate('/iniciar-sesion');
+    if (!usuario || !idCliente || usuario.rol === 'BARBERO') {
+      navigate('/login');
       return;
     }
+    cargarHistorial();
+    const timer = setInterval(() => cargarHistorial(true), 15000);
+    return () => clearInterval(timer);
+  }, [usuario, idCliente, cargarHistorial, navigate]);
 
-    fetch(`${API_BASE}/turnos/cliente/${usuario.id_usuario}`)
-      .then(res => res.json())
-      .then(data => setTurnos(data))
-      .catch(err => console.error('Error al cargar historial:', err))
-      .finally(() => setCargando(false));
-  }, [usuario, navigate]);
+  const cancelar = async (idTurno) => {
+    if (!window.confirm('¿Deseas cancelar esta cita?')) return;
+    try {
+      await cambiarEstadoTurno(idTurno, 'CANCELADO', 'CLIENTE', idCliente);
+      cargarHistorial();
+    } catch (err) {
+      alert(err.message || 'No se pudo cancelar la cita.');
+    }
+  };
+
+  const renderBadgeEstado = (estado) => {
+    const est = (estado || 'PENDIENTE').toUpperCase();
+    if (est === 'CONFIRMADO' || est === 'COMPLETADO' || est === 'FINALIZADO') {
+      return (
+        <span className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          <CheckCircle size={12} />
+          {est}
+        </span>
+      );
+    } else if (est === 'CANCELADO') {
+      return (
+        <span className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 bg-red-500/10 text-red-400 border border-red-500/30">
+          <XCircle size={12} />
+          {est}
+        </span>
+      );
+    }
+    return (
+      <span className="text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 bg-[#E08A3E]/10 text-[#E08A3E] border border-[#E08A3E]/30">
+        <AlertCircle size={12} />
+        {est}
+      </span>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-[#111613] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
-      
-      {/* Círculos sólidos de fondo Figma */}
-      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
-      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+    <div className="relative min-h-screen w-full bg-[#111713] text-white font-sans p-6 sm:p-12 overflow-x-hidden flex flex-col justify-between">
+      <div className="absolute top-[-150px] right-[-150px] w-[700px] h-[700px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
+      <div className="absolute bottom-[-150px] left-[-150px] w-[700px] h-[700px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto relative z-10">
-        
-        {/* Header con botón y logo */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/cliente')}>
-            <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
-              <span className="text-2xl filter drop-shadow">🦝</span>
+      <div className="relative z-10 w-full flex-1 flex flex-col">
+        <header className="flex items-center justify-between mb-8 pb-4 border-b border-[#2D3E31] w-full">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/cliente')}
+              title="Volver al Panel"
+              className="w-10 h-10 bg-[#1A251D] border border-[#2D3E31] rounded-xl flex items-center justify-center hover:bg-[#25352a] text-gray-300 transition-colors cursor-pointer"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
+              <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
             </div>
             <div>
-              <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
+              <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
                 El Mapache Bigotón
               </span>
-              <span className="text-xl font-extrabold text-white tracking-wide">
-                BarberApp
-              </span>
+              <h1 className="text-xl font-bold tracking-tight text-white leading-none">Historial de Turnos</h1>
             </div>
           </div>
+        </header>
 
-          <button 
-            onClick={() => navigate('/cliente')} 
-            className="flex items-center gap-1.5 text-xs text-[#d97706] hover:underline"
-          >
-            <ArrowLeft size={14} /> Volver al panel
-          </button>
-        </div>
-
-        {/* Título de la sección */}
         <div className="mb-6">
-          <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider block mb-1">
-            Mis Citas
-          </span>
-          <h1 className="text-3xl font-black text-white tracking-tight">Historial de Turnos</h1>
+          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Tus Citas Registradas</h2>
           <p className="text-xs text-gray-400 mt-1">
-            Registro de todas tus citas pasadas y activas sincronizadas con la barbería.
+            Consulta los detalles de tus turnos programados, estado del servicio y barbero asignado.
           </p>
         </div>
 
-        {/* Lista de citas */}
         {cargando ? (
-          <p className="text-gray-400 text-xs">Cargando citas de la base de datos...</p>
+          <div className="bg-[#1A251D] border border-[#2D3E31] p-8 rounded-2xl text-center text-xs text-gray-400 w-full">
+            Cargando historial de citas...
+          </div>
         ) : turnos.length === 0 ? (
-          <div className="bg-[#18211b]/95 border border-[#25332a] p-10 rounded-3xl text-center text-gray-400 text-xs shadow-2xl backdrop-blur-md">
-            No tienes turnos registrados aún.
+          <div className="bg-[#1A251D] border border-[#2D3E31] p-12 rounded-2xl text-center flex flex-col items-center justify-center w-full my-auto">
+            <Scissors size={40} className="text-[#E08A3E] mb-3 opacity-60" />
+            <h3 className="text-sm font-bold text-white mb-1">Sin turnos en tu historial</h3>
+            <p className="text-xs text-gray-400 max-w-sm">
+              Actualmente no cuentas con registros de citas anteriores o agendadas en tu perfil.
+            </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {turnos.map((t) => (
-              <div 
-                key={t.idTurno} 
-                className="bg-[#18211b]/95 border border-[#25332a] hover:border-[#ea8536]/40 p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition shadow-xl backdrop-blur-md"
-              >
-                <div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-white text-base">
-                      {t.notasCliente || `Turno #${t.idTurno}`}
-                    </span>
-                    <span className={`text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${
-                      t.estado === 'CONFIRMADO' 
-                        ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' 
-                        : 'bg-red-950/80 text-red-400 border border-red-800'
-                    }`}>
-                      {t.estado === 'CONFIRMADO' ? <CheckCircle size={11} /> : <XCircle size={11} />}
-                      {t.estado}
-                    </span>
+          <div className="flex flex-col gap-4 w-full">
+            {turnos.map((t, idx) => {
+              const barberoNombre = t.barbero?.nombreCompleto || 'Barbero asignado';
+              const servicioNombre = t.servicio?.nombreServicio || t.notasCliente || 'Servicio de barbería';
+              const hora = t.horaInicio ? String(t.horaInicio).substring(0, 5) : '09:00';
+              return (
+                <div
+                  key={t.idTurno || idx}
+                  className="bg-[#1A251D] border border-[#2D3E31] p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-[#E08A3E]/50 transition-colors shadow-lg w-full"
+                >
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <span className="font-bold text-white text-sm sm:text-base">{servicioNombre}</span>
+                      {renderBadgeEstado(t.estado)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 mt-3">
+                      <span className="flex items-center gap-1.5 bg-[#111713] border border-[#2D3E31] px-3 py-1 rounded-lg">
+                        <Calendar size={13} className="text-[#E08A3E]" />
+                        {t.fecha || 'Fecha pendiente'}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-[#111713] border border-[#2D3E31] px-3 py-1 rounded-lg">
+                        <Clock size={13} className="text-[#E08A3E]" />
+                        {hora} hs
+                      </span>
+                      <span className="text-gray-400">
+                        Sucursal: <strong className="text-gray-200">{t.sucursal || 'Matriz Centro'}</strong>
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-400 mt-2.5">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar size={13} className="text-[#ea8536]" /> {t.fecha}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Clock size={13} className="text-[#ea8536]" /> {t.horaInicio ? String(t.horaInicio).substring(0, 5) : '18:30'}
-                    </span>
-                    <span>Sucursal: {t.sucursal || 'Centro'}</span>
-                  </div>
-                </div>
 
-                {/* Mostrar el barbero real asignado a la cita */}
-                <div className="text-right text-xs bg-[#141b16] border border-[#25332a] px-4 py-2.5 rounded-2xl self-end sm:self-center">
-                  <span className="text-gray-500 block text-[10px] uppercase font-bold">Barbero</span>
-                  <span className="text-white font-bold text-xs capitalize">
-                    {t.nombreBarbero || 'Barbero Asignado'}
-                  </span>
+                  <div className="text-left sm:text-right border-t sm:border-t-0 border-[#2D3E31] pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-2">
+                    <div className="sm:text-right">
+                      <span className="text-[10px] text-gray-400 block uppercase tracking-wider">Barbero</span>
+                      <span className="text-xs text-[#E08A3E] font-bold flex items-center gap-1">
+                        <User size={13} />
+                        {barberoNombre}
+                      </span>
+                    </div>
+                    {esActivo(t.estado) && (
+                      <button
+                        onClick={() => cancelar(t.idTurno)}
+                        className="py-1.5 px-4 bg-[#111713] hover:bg-[#18221c] text-gray-300 border border-[#2D3E31] text-[11px] font-semibold rounded-xl transition cursor-pointer"
+                      >
+                        Cancelar cita
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      <footer className="relative z-10 p-4 text-center text-xs text-gray-600 mt-8">
+        El Mapache Bigotón &copy; BarberApp
+      </footer>
     </div>
   );
 }

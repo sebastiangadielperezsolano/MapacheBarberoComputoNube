@@ -1,380 +1,343 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, History, CreditCard, Settings, LogOut, Home } from 'lucide-react';
+import { Home, Calendar, History, CreditCard, Settings, LogOut } from 'lucide-react';
+import { API_URL, leerSesion, esActivo, cambiarEstadoTurno, fechaHoraTurno } from '../../api.js';
 
-const API_BASE = 'http://localhost:8081/api';
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '');
+const hhmm = (h) => (h ? String(h).substring(0, 5) : '');
+
+const NAV = [
+  { label: 'Inicio', ruta: '/cliente', Icon: Home, activo: true },
+  { label: 'Mis turnos', ruta: '/historialC', Icon: Calendar },
+  { label: 'Historial', ruta: '/historialC', Icon: History },
+  { label: 'Pagos', ruta: '/historialC', Icon: CreditCard },
+  { label: 'Configuración', ruta: '/ajustesc', Icon: Settings },
+];
 
 export default function InicioCliente() {
   const navigate = useNavigate();
-
-  const [usuario, setUsuario] = useState(() => {
-    try {
-      const sesion = localStorage.getItem('usuario');
-      return sesion ? JSON.parse(sesion) : null;
-    } catch {
-      return null;
-    }
-  });
-
+  const [usuario] = useState(leerSesion);
   const [turnos, setTurnos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
-  useEffect(() => {
-    if (!usuario || !usuario.id_usuario) {
-      localStorage.removeItem('usuario');
-      navigate('/iniciar-sesion');
-      return;
-    }
+  const idCliente = usuario?.idCliente || usuario?.idUsuario;
+  const emailUsuario = (usuario?.email || '').toLowerCase();
+  let avatarsGuardados = {};
+  try {
+    avatarsGuardados = JSON.parse(localStorage.getItem('avatars_usuarios') || '{}');
+  } catch {
+    avatarsGuardados = {};
+  }
+  const fotoCliente = avatarsGuardados[emailUsuario] || usuario?.avatar || usuario?.foto || '/defecto.png';
 
-    if (usuario.tipo_usuario === 'BARBERO') {
-      navigate('/barbero');
-      return;
-    }
-
-    cargarTurnos(usuario.id_usuario);
-    cargarFotoPerfil(usuario.id_usuario);
-  }, [usuario, navigate]);
-
-  const cargarTurnos = async (idUsuario) => {
+  const cargarTurnos = useCallback(async (silencioso = false) => {
+    if (!silencioso) setCargando(true);
     try {
-      const res = await fetch(`${API_BASE}/turnos/cliente/${idUsuario}`);
+      const res = await fetch(`${API_URL}/api/turnos?idCliente=${idCliente}`);
       if (res.ok) {
         const data = await res.json();
-        setTurnos(data);
+        if (Array.isArray(data)) setTurnos(data);
       }
-    } catch (err) {
-      console.error('Error al cargar turnos:', err);
+    } catch (e) {
+      console.error('Error al cargar turnos del cliente', e);
     } finally {
       setCargando(false);
     }
-  };
+  }, [idCliente]);
 
-  const cargarFotoPerfil = async (idUsuario) => {
-    try {
-      const res = await fetch(`${API_BASE}/usuarios/${idUsuario}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.foto) {
-          setUsuario(prev => ({ ...prev, foto: data.foto }));
-          const sesion = JSON.parse(localStorage.getItem('usuario') || '{}');
-          localStorage.setItem('usuario', JSON.stringify({ ...sesion, foto: data.foto }));
-        }
-      }
-    } catch (err) {
-      console.error('Error al cargar avatar:', err);
+  useEffect(() => {
+    if (!usuario || !idCliente || usuario.rol === 'BARBERO') {
+      localStorage.removeItem('usuarioSesion');
+      localStorage.removeItem('usuario');
+      navigate('/login');
+      return;
     }
-  };
+    cargarTurnos();
+    const timer = setInterval(() => cargarTurnos(true), 15000);
+    return () => clearInterval(timer);
+  }, [usuario, idCliente, cargarTurnos, navigate]);
 
   const handleCerrarSesion = () => {
+    localStorage.removeItem('usuarioSesion');
     localStorage.removeItem('usuario');
-    navigate('/iniciar-sesion');
+    navigate('/login');
   };
 
   const handleCancelarTurno = async (idTurno) => {
     if (!window.confirm('¿Deseas cancelar esta cita?')) return;
     try {
-      const res = await fetch(`${API_BASE}/turnos/${idTurno}/cancelar`, { method: 'PUT' });
-      if (res.ok) {
-        alert('Cita cancelada correctamente');
-        if (usuario?.id_usuario) cargarTurnos(usuario.id_usuario);
-      } else {
-        alert('No se pudo cancelar la cita.');
-      }
+      await cambiarEstadoTurno(idTurno, 'CANCELADO', 'CLIENTE', idCliente);
+      alert('Cita cancelada correctamente');
+      cargarTurnos();
     } catch (err) {
-      alert('Error de conexión con el backend.');
+      alert(err.message || 'No se pudo cancelar la cita.');
     }
   };
 
-  const nombreCliente = usuario?.nombre_completo || usuario?.nombreCompleto || 'Cliente';
-  const inicialCliente = (nombreCliente[0] || 'C').toUpperCase();
+  const nombreCliente = usuario?.nombreCompleto || 'Cliente';
+  const primerNombre = nombreCliente.split(' ')[0];
 
-  const proximoTurno = turnos.find(t => t.estado === 'CONFIRMADO');
-  const turnosConfirmados = turnos.filter(t => t.estado === 'CONFIRMADO').length;
+  const proximoTurno = turnos
+      .filter((t) => esActivo(t.estado))
+      .sort((a, b) => fechaHoraTurno(a) - fechaHoraTurno(b))[0];
 
-  const obtenerTextoFechaTurno = (fechaStr, horaStr) => {
-    if (!fechaStr) return { encabezado: 'Turno programado', badge: '' };
+  const turnosEsteMes = turnos.filter((t) => {
+    const e = (t.estado || '').toUpperCase();
+    return e === 'CONFIRMADO' || e === 'PENDIENTE';
+  }).length;
 
-    const partes = fechaStr.split('-');
-    const fechaCita = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-    
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    const diferenciaMs = fechaCita.getTime() - hoy.getTime();
-    const diferenciaDias = Math.round(diferenciaMs / (1000 * 60 * 60 * 24));
-    const horaCorta = horaStr ? String(horaStr).substring(0, 5) : '18:30';
-
-    if (diferenciaDias === 0) {
-      return { encabezado: 'Confirmado para hoy', badge: `Hoy · ${horaCorta}` };
-    } else if (diferenciaDias === 1) {
-      return { encabezado: 'Confirmado para mañana', badge: `Mañana · ${horaCorta}` };
-    } else {
-      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-      return {
-        encabezado: `Confirmado para el ${fechaCita.getDate()} de ${meses[fechaCita.getMonth()]} de ${fechaCita.getFullYear()}`,
-        badge: `${fechaStr} · ${horaCorta}`
-      };
-    }
-  };
-
-  const infoFecha = proximoTurno ? obtenerTextoFechaTurno(proximoTurno.fecha, proximoTurno.horaInicio) : null;
+  const estadoProximo = (proximoTurno?.estado || 'PENDIENTE').toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#111613] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
-      
-      {/* Círculos sólidos de Figma */}
-      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
-      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
+      <div className="relative min-h-screen w-full bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-x-hidden flex flex-col justify-between">
+        <div className="absolute top-[-150px] right-[-150px] w-[700px] h-[700px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
 
-      <header className="flex justify-between items-center mb-10 relative z-10 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
-            <span className="text-2xl filter drop-shadow">🦝</span>
-          </div>
-          <div className="leading-tight">
-            <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
-              El Mapache Bigotón
-            </span>
-            <span className="text-xl font-extrabold text-white tracking-wide">
-              BarberApp
-            </span>
-          </div>
-        </div>
-
-        <button 
-          onClick={handleCerrarSesion}
-          className="flex items-center gap-2 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-extrabold px-5 py-2.5 rounded-xl text-xs transition duration-200 shadow-md shadow-black/30"
-        >
-          <LogOut size={15} className="rotate-180" /> Salir
-        </button>
-      </header>
-
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
-        
-        <div className="lg:col-span-8 space-y-6">
-          <section>
-            <span className="text-[11px] font-extrabold text-[#d97706] tracking-wider uppercase block mb-1">
-              El Mapache Bigotón
-            </span>
-            <h1 className="text-4xl font-black text-white capitalize tracking-tight">
-              Hola, {nombreCliente}
-            </h1>
-            <p className="text-xs text-gray-400 mt-1 max-w-xl leading-relaxed">
-              Tu próximo turno ya está confirmado. Revisa tu agenda, accede a tus servicios y administra tus citas desde un solo lugar.
-            </p>
-          </section>
-
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 backdrop-blur-md shadow-2xl">
-            <div className="flex justify-between items-center mb-5">
-              <span className="text-[10px] font-black tracking-widest uppercase text-[#d97706]">
-                Próximo Turno
+        <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
+          <header className="flex justify-between items-center mb-8 w-full">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
+                <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
+              </div>
+              <div>
+              <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
+                EL MAPACHE BIGOTÓN
               </span>
-              {infoFecha && (
-                <span className="text-[11px] bg-[#121914] text-gray-300 font-semibold px-3.5 py-1.5 rounded-full border border-[#2b3a30]">
-                  {infoFecha.badge}
-                </span>
-              )}
+                <h1 className="text-xl font-extrabold tracking-tight text-white leading-none">BarberApp</h1>
+              </div>
             </div>
+            <button
+                onClick={handleCerrarSesion}
+                className="py-2.5 px-6 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-bold rounded-2xl transition-all cursor-pointer flex items-center gap-2 text-xs shadow-lg"
+            >
+              <LogOut size={15} />
+              <span>Salir</span>
+            </button>
+          </header>
 
-            {proximoTurno ? (
-              <>
-                <h3 className="text-xl font-bold text-white mb-5 tracking-wide">
-                  {infoFecha.encabezado}
-                </h3>
-                
-                <div className="bg-[#1e2a22] border border-[#2e3e33] p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-13 h-13 rounded-2xl overflow-hidden bg-[#2a3a30] border-2 border-[#ea8536] flex items-center justify-center shadow-inner flex-shrink-0">
-                      {usuario?.foto ? (
-                        <img 
-                          src={usuario.foto} 
-                          alt={nombreCliente} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-base font-black text-white">
-                          {inicialCliente}
-                        </span>
-                      )}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full flex-1">
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              <section className="mb-2">
+              <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block mb-1">
+                EL MAPACHE BIGOTÓN
+              </span>
+                <h2 className="text-4xl font-black text-white tracking-tight">Hola, {primerNombre}</h2>
+                <p className="text-xs text-gray-400 mt-1 max-w-xl">
+                  Revisa tu agenda, accede a tus servicios favoritos y administra tus pagos desde un solo lugar.
+                </p>
+              </section>
+
+              <div className="bg-[#1A251D] border border-[#2D3E31] rounded-3xl p-6 shadow-2xl w-full">
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block">
+                    PRÓXIMO TURNO
+                  </span>
+                    <h3 className="text-xl font-extrabold text-white">
+                      {proximoTurno
+                          ? `${cap(estadoProximo)} para ${proximoTurno.fecha || 'hoy'}`
+                          : 'Sin turnos agendados'}
+                    </h3>
+                  </div>
+                  {proximoTurno && (
+                      <span className="text-xs bg-[#111713] text-gray-300 border border-[#2D3E31] px-4 py-1.5 rounded-full font-medium">
+                    {proximoTurno.fecha || 'Hoy'} • {hhmm(proximoTurno.horaInicio)}
+                  </span>
+                  )}
+                </div>
+
+                {cargando ? (
+                    <div className="text-center py-8 text-xs text-gray-400">Cargando la información de tus citas...</div>
+                ) : proximoTurno ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-2">
+                        <div className="flex items-center gap-4">
+                          <div
+                              onClick={() => navigate('/ajustesc')}
+                              className="w-14 h-14 rounded-2xl overflow-hidden bg-[#111713] border-2 border-[#E08A3E] flex-shrink-0 cursor-pointer"
+                          >
+                            <img
+                                src={fotoCliente}
+                                alt={nombreCliente}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.src = '/defecto.png'; }}
+                            />
+                          </div>
+                          <div>
+                            <h4 className="font-extrabold text-xl text-white">
+                              {proximoTurno.servicio?.nombreServicio || proximoTurno.notasCliente || 'Servicio de barbería'}
+                            </h4>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              Con {proximoTurno.barbero?.nombreCompleto || 'Tu barbero'}
+                            </p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                              {hhmm(proximoTurno.horaInicio)} • {proximoTurno.sucursal || 'BarberApp Centro'}
+                              {proximoTurno.servicio?.duracion ? ` • ${proximoTurno.servicio.duracion} min` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto justify-end">
+                          <button
+                              onClick={() => navigate('/historialC')}
+                              className="py-2.5 px-5 bg-[#E08A3E] hover:bg-[#c9762e] text-[#111713] font-extrabold text-xs rounded-xl transition cursor-pointer shadow-md"
+                          >
+                            Ver turno
+                          </button>
+                          <button
+                              onClick={() => handleCancelarTurno(proximoTurno.idTurno)}
+                              className="py-2.5 px-5 bg-[#111713] hover:bg-[#18221c] text-gray-300 border border-[#2D3E31] text-xs font-semibold rounded-xl transition cursor-pointer"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div className="bg-[#111713] border border-[#2D3E31] p-3.5 rounded-2xl">
+                          <span className="text-[10px] text-gray-500 font-medium block mb-1">Estado</span>
+                          <span className="text-xs font-bold text-white block">
+                        {cap(estadoProximo)}
+                            {estadoProximo === 'PENDIENTE' ? ' · esperando al barbero' : ''}
+                      </span>
+                        </div>
+                        <div className="bg-[#111713] border border-[#2D3E31] p-3.5 rounded-2xl">
+                          <span className="text-[10px] text-gray-500 font-medium block mb-1">Pago</span>
+                          <span className="text-xs font-bold text-white block">En local</span>
+                        </div>
+                        <div className="bg-[#111713] border border-[#2D3E31] p-3.5 rounded-2xl">
+                          <span className="text-[10px] text-gray-500 font-medium block mb-1">Llegada</span>
+                          <span className="text-xs font-bold text-white block">10 min antes</span>
+                        </div>
+                      </div>
                     </div>
+                ) : (
+                    <div className="text-center py-8 text-gray-400 text-xs flex flex-col items-center">
+                      <p className="mb-4">No tienes turnos programados en este momento.</p>
+                      <button
+                          onClick={() => navigate('/agendar')}
+                          className="py-2.5 px-5 bg-[#E08A3E] text-[#111713] font-extrabold rounded-xl text-xs hover:bg-[#c9762e] transition-all cursor-pointer"
+                      >
+                        + Agendar un turno ahora
+                      </button>
+                    </div>
+                )}
+              </div>
+
+              <div className="w-full">
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase block">
+                    ACCESOS RÁPIDOS
+                  </span>
+                    <h3 className="text-xl font-extrabold text-white">Gestiona tu experiencia</h3>
+                  </div>
+                  <span className="text-[10px] text-gray-500">Última actualización hoy</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                  <div
+                      onClick={() => navigate('/agendar')}
+                      className="bg-[#1A251D] border border-[#2D3E31] hover:border-[#E08A3E] p-5 rounded-2xl cursor-pointer transition-colors shadow-lg flex flex-col justify-between"
+                  >
                     <div>
-                      <h4 className="font-bold text-base text-white tracking-wide">
-                        {proximoTurno.notasCliente || 'Corte clásico + barba'}
-                      </h4>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Con {proximoTurno.nombreBarbero || 'tu barbero'} • {proximoTurno.sucursal || 'BarberApp Centro'} • 45 min
+                      <div className="w-9 h-9 bg-[#111713] rounded-xl flex items-center justify-center text-[#E08A3E] mb-3 border border-[#2D3E31]">
+                        <Calendar size={18} />
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">Agendar turno</h4>
+                      <p className="text-[11px] text-gray-400 mt-1 mb-4 leading-relaxed">
+                        Elige fecha, hora y servicio con un solo clic.
                       </p>
                     </div>
+                    <button className="py-2 px-4 bg-[#111713] border border-[#2D3E31] text-xs font-bold text-white rounded-xl hover:border-[#E08A3E] transition-all self-start">
+                      Agendar
+                    </button>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
-                    <button 
-                      onClick={() => navigate('/cliente/historial')}
-                      className="bg-[#ea8536] hover:bg-[#d97528] text-[#121814] text-xs font-black px-5 py-2.5 rounded-xl transition shadow"
-                    >
-                      Ver turno
-                    </button>
-                    <button 
-                      onClick={() => handleCancelarTurno(proximoTurno.idTurno)}
-                      className="bg-[#243329] hover:bg-red-950/80 hover:text-red-400 text-gray-300 text-xs font-semibold px-4 py-2.5 rounded-xl transition border border-[#334538]"
-                    >
-                      Cancelar
+                  <div
+                      onClick={() => navigate('/historialC')}
+                      className="bg-[#1A251D] border border-[#2D3E31] hover:border-[#E08A3E] p-5 rounded-2xl cursor-pointer transition-colors shadow-lg flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="w-9 h-9 bg-[#111713] rounded-xl flex items-center justify-center text-[#E08A3E] mb-3 border border-[#2D3E31]">
+                        <History size={18} />
+                      </div>
+                      <h4 className="font-extrabold text-sm text-white">Historial de turnos</h4>
+                      <p className="text-[11px] text-gray-400 mt-1 mb-4 leading-relaxed">
+                        Revisa tus visitas pasadas y el detalle de cada servicio.
+                      </p>
+                    </div>
+                    <button className="py-2 px-4 bg-[#111713] border border-[#2D3E31] text-xs font-bold text-white rounded-xl hover:border-[#E08A3E] transition-all self-start">
+                      Ver historial
                     </button>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-4 mt-5 text-xs">
-                  <div className="bg-[#141b16] p-4 rounded-2xl border border-[#243128]">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Estado</span>
-                    <span className="font-bold text-emerald-400">{proximoTurno.estado}</span>
-                  </div>
-                  <div className="bg-[#141b16] p-4 rounded-2xl border border-[#243128]">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Pago</span>
-                    <span className="font-bold text-white">En sucursal</span>
-                  </div>
-                  <div className="bg-[#141b16] p-4 rounded-2xl border border-[#243128]">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Llegada</span>
-                    <span className="font-bold text-white">10 min antes</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-10 text-gray-400 text-xs">
-                No tienes turnos programados en este momento.
               </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider">
-                Accesos Rápidos
-              </span>
-              <span className="text-[10px] text-gray-500">Última actualización hoy</span>
             </div>
-            <h3 className="text-base font-bold text-white mb-4">Gestiona tu experiencia</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div 
-                onClick={() => navigate('/cliente/agendar')}
-                className="bg-[#18211b] border border-[#25332a] hover:border-[#ea8536]/50 p-6 rounded-2xl cursor-pointer transition duration-200 group shadow-lg"
-              >
-                <div className="w-10 h-10 bg-[#212d25] rounded-xl flex items-center justify-center text-[#ea8536] mb-4 group-hover:scale-105 transition">
-                  <Calendar size={20} />
+            <div className="lg:col-span-4 flex flex-col gap-6">
+              <div className="bg-[#1A251D] border border-[#2D3E31] rounded-3xl p-6 shadow-xl w-full">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase">NAVEGACIÓN</span>
+                  <div onClick={() => navigate('/ajustesc')} className="flex items-center gap-2 cursor-pointer group">
+                    <div className="w-8 h-8 rounded-full bg-[#111713] border border-[#E08A3E] flex items-center justify-center group-hover:scale-105 transition-all overflow-hidden">
+                      <img
+                          src={fotoCliente}
+                          alt={primerNombre}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.target.src = '/defecto.png'; }}
+                      />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-xs font-bold text-white leading-none">{primerNombre}</span>
+                      <span className="text-[9px] text-gray-400 block">Cliente</span>
+                    </div>
+                  </div>
                 </div>
-                <h4 className="font-bold text-sm text-white">Agendar turno</h4>
-                <p className="text-xs text-gray-400 mt-1 mb-4 leading-relaxed">
-                  Elige fecha, hora y servicio con un solo clic.
-                </p>
-                <span className="text-xs text-[#ea8536] font-bold inline-flex items-center gap-1">
-                  Agendar →
-                </span>
+                <nav className="flex flex-col gap-2">
+                  {NAV.map(({ label, ruta, Icon, activo }) => (
+                      <button
+                          key={label}
+                          onClick={() => navigate(ruta)}
+                          className={
+                            activo
+                                ? 'w-full p-3 bg-[#111713] border border-[#2D3E31] rounded-xl flex items-center gap-3 text-xs font-bold text-white transition-all cursor-pointer'
+                                : 'w-full p-3 bg-[#111713] border border-[#2D3E31] hover:border-[#E08A3E] rounded-xl flex items-center gap-3 text-xs font-medium text-gray-300 transition-all cursor-pointer'
+                          }
+                      >
+                        <Icon size={16} className={activo ? 'text-[#E08A3E]' : 'text-gray-400'} />
+                        <span>{label}</span>
+                      </button>
+                  ))}
+                </nav>
               </div>
 
-              <div 
-                onClick={() => navigate('/cliente/historial')}
-                className="bg-[#18211b] border border-[#25332a] hover:border-[#ea8536]/50 p-6 rounded-2xl cursor-pointer transition duration-200 group shadow-lg"
-              >
-                <div className="w-10 h-10 bg-[#212d25] rounded-xl flex items-center justify-center text-[#ea8536] mb-4 group-hover:scale-105 transition">
-                  <History size={20} />
+              <div className="bg-[#1A251D] border border-[#2D3E31] rounded-3xl p-6 shadow-xl w-full">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] font-bold text-[#E08A3E] tracking-widest uppercase">RESUMEN</span>
+                  <span className="text-[10px] text-gray-500">Actualizado hoy</span>
                 </div>
-                <h4 className="font-bold text-sm text-white">Historial de turnos</h4>
-                <p className="text-xs text-gray-400 mt-1 mb-4 leading-relaxed">
-                  Revisa tus visitas pasadas y el detalle de cada servicio.
-                </p>
-                <span className="text-xs text-[#ea8536] font-bold inline-flex items-center gap-1">
-                  Ver historial ({turnos.length}) →
-                </span>
+                <div className="space-y-3 text-xs mb-6">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-400">Turnos activos</span>
+                    <span className="font-bold text-white">{turnosEsteMes}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-400">Último pago</span>
+                    <span className="font-bold text-white">$1.250</span>
+                  </div>
+                </div>
+                <button
+                    onClick={() => navigate('/historialC')}
+                    className="w-full py-3 bg-[#111713] hover:bg-[#18221c] border border-[#2D3E31] text-gray-300 font-bold rounded-xl text-xs transition-all cursor-pointer text-center block"
+                >
+                  Ver resumen
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-6 shadow-xl backdrop-blur-md">
-            <div className="flex justify-between items-center mb-5">
-              <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider">
-                Navegación
-              </span>
-              <div className="flex items-center gap-2.5">
-                {usuario?.foto ? (
-                  <img 
-                    src={usuario.foto} 
-                    alt="Perfil" 
-                    className="w-8 h-8 rounded-full object-cover border-2 border-[#ea8536]"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#27382d] border border-[#3b4f42] flex items-center justify-center text-xs font-black text-white shadow-inner">
-                    {inicialCliente}
-                  </div>
-                )}
-                <div className="text-right">
-                  <span className="text-xs font-bold text-white block leading-tight capitalize">
-                    {nombreCliente}
-                  </span>
-                  <span className="text-[10px] text-gray-400 capitalize">
-                    {usuario?.tipo_usuario?.toLowerCase() || 'cliente'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <nav className="space-y-1.5 text-xs">
-              <button 
-                onClick={() => navigate('/cliente')} 
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-[#ea8536] bg-[#222e26] rounded-xl font-bold"
-              >
-                <Home size={16} /> Inicio
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/historial')} 
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-[#202c23] rounded-xl transition font-medium"
-              >
-                <History size={16} /> Historial
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/historial')} 
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-[#202c23] rounded-xl transition font-medium"
-              >
-                <CreditCard size={16} /> Pagos
-              </button>
-              <button 
-                onClick={() => navigate('/cliente/configuracion')} 
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-gray-400 hover:text-white hover:bg-[#202c23] rounded-xl transition font-medium"
-              >
-                <Settings size={16} /> Configuración
-              </button>
-            </nav>
-          </div>
-
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-6 shadow-xl backdrop-blur-md">
-            <div className="flex justify-between items-center mb-5">
-              <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider">
-                Resumen
-              </span>
-              <span className="text-[10px] text-gray-500">Actualizado hoy</span>
-            </div>
-
-            <div className="space-y-3.5 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Turnos activos</span>
-                <span className="font-bold text-white text-sm">{turnosConfirmados}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Total historial</span>
-                <span className="font-bold text-white text-sm">{turnos.length}</span>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => navigate('/cliente/historial')}
-              className="w-full mt-6 bg-[#212c24] hover:bg-[#2a382e] border border-[#2e3e33] text-gray-200 text-xs font-bold py-2.5 rounded-xl transition"
-            >
-              Ver resumen
-            </button>
-          </div>
-        </div>
+        <footer className="relative z-10 p-4 text-center text-xs text-gray-600 mt-8">
+          El Mapache Bigotón &copy; BarberApp
+        </footer>
       </div>
-    </div>
   );
 }

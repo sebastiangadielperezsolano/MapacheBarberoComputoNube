@@ -1,6 +1,6 @@
 package tecnm.equipo4.barberoApi.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +17,6 @@ import java.time.LocalTime;
 @Data
 @Table(name = "disponibilidadB")
 public class DisponibilidadBarbero {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDisponibilidad;
@@ -35,8 +34,8 @@ public class DisponibilidadBarbero {
     @Column(name = "diaSalida")
     private LocalTime diaSalida;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonIgnore
+    @ManyToOne
     @JoinColumn(name = "idUsuario")
-    @JsonIgnoreProperties({"disponibilidades", "turnos", "password"})
     private Barbero barbero;
 }

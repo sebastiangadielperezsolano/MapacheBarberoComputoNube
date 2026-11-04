@@ -7,18 +7,18 @@ import org.springframework.web.util.UriComponentsBuilder;
 import tecnm.equipo4.barberoApi.models.Barbero;
 import tecnm.equipo4.barberoApi.models.DisponibilidadBarbero;
 import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
-import tecnm.equipo4.barberoApi.repositories.DisponibilidadRespository;
+import tecnm.equipo4.barberoApi.repositories.DisponibilidadRepository;
 
 import java.net.URI;
 import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/disponibilidades")
 @CrossOrigin(origins = "*")
+@RequestMapping("/api/disponibilidad")
 public class DisponibilidadController {
 
-    private final DisponibilidadRespository dispRepository;
+    private final DisponibilidadRepository dispRepository;
     private final BarberoRepository barberoRepository;
 
     @GetMapping
@@ -28,8 +28,8 @@ public class DisponibilidadController {
 
     @GetMapping("/{idDisponibilidad}")
     public ResponseEntity<DisponibilidadBarbero> findById(@PathVariable Long idDisponibilidad) {
-        Optional<DisponibilidadBarbero> dispOptional = dispRepository.findById(idDisponibilidad);
-        return dispOptional.map(ResponseEntity::ok)
+        return dispRepository.findById(idDisponibilidad)
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -40,16 +40,13 @@ public class DisponibilidadController {
         }
 
         Optional<Barbero> barberoOptional = barberoRepository.findById(disp.getBarbero().getIdBarbero());
-        if (!barberoOptional.isPresent()) {
+        if (barberoOptional.isEmpty()) {
             return ResponseEntity.unprocessableEntity().build();
         }
 
         disp.setBarbero(barberoOptional.get());
         DisponibilidadBarbero created = dispRepository.save(disp);
-        URI uri = ucb.path("/api/disponibilidades/{idDisponibilidad}")
-                .buildAndExpand(created.getIdDisponibilidad())
-                .toUri();
-
+        URI uri = ucb.path("/api/disponibilidad/{idDisponibilidad}").buildAndExpand(created.getIdDisponibilidad()).toUri();
         return ResponseEntity.created(uri).body(created);
     }
 
@@ -60,18 +57,17 @@ public class DisponibilidadController {
         }
 
         Optional<Barbero> barberoOptional = barberoRepository.findById(disp.getBarbero().getIdBarbero());
-        if (!barberoOptional.isPresent()) {
+        if (barberoOptional.isEmpty()) {
             return ResponseEntity.unprocessableEntity().build();
         }
 
         Optional<DisponibilidadBarbero> dispAnt = dispRepository.findById(idDisponibilidad);
         if (dispAnt.isPresent()) {
-            disp.setBarbero(barberoOptional.get());
             disp.setIdDisponibilidad(idDisponibilidad);
+            disp.setBarbero(barberoOptional.get());
             dispRepository.save(disp);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.noContent().build();
         }
-
         return ResponseEntity.notFound().build();
     }
 

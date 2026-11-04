@@ -1,11 +1,14 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-
-@Table (name = "barbero")
+@Table(name = "barbero")
 public class Barbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,17 +59,28 @@ public class Barbero {
     @Column(name = "tituloRol")
     private String tituloRol;
 
+    @Column(name = "sucursal")
+    private String sucursal;
+
     @Lob
     @Column(name = "foto", columnDefinition = "LONGBLOB")
     private byte[] foto;
 
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<Turno> turnos = new ArrayList<>();
 
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "barbero", cascade = CascadeType.ALL)
     private List<DisponibilidadBarbero> disponibilidades = new ArrayList<>();
 
-    //Relacion N:M con Cliente
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "barbero")
     private List<ClienteBarbero> clientesBarberos;
 }

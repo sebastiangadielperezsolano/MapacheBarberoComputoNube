@@ -1,344 +1,447 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Scissors, UserCheck } from 'lucide-react';
+import { User, Phone, FileText, Check, ArrowLeft, Scissors, UserCheck, MapPin } from 'lucide-react';
+import { API_URL, leerSesion, fechaLocalISO, leerError } from '../../api.js';
 
-const API_BASE = 'http://localhost:8081/api';
+const HORAS_MANANA = ['09:00', '09:45', '10:30', '11:15'];
+const HORAS_TARDE = ['14:00', '15:30', '17:00', '18:30'];
 
-export default function RegistroCita() {
-  const navigate = useNavigate();
+const idDe = (b) => String(b.idBarbero ?? b.idUsuario ?? '');
 
-  const [usuario] = useState(() => {
-    try {
-      const sesion = localStorage.getItem('usuario');
-      return sesion ? JSON.parse(sesion) : { id_usuario: 1, nombre_completo: 'wicho' };
-    } catch {
-      return { id_usuario: 1, nombre_completo: 'wicho' };
-    }
-  });
+export default function AgendarCita() {
+    const navigate = useNavigate();
+    const [usuarioSesion] = useState(() => leerSesion() || {});
+    const idCliente = usuarioSesion.idCliente || usuarioSesion.idUsuario;
 
-  const serviciosCatalogo = [
-    { id: 1, nombre: 'Corte clásico', precio: 150, duracion: '45 min' },
-    { id: 2, nombre: 'Corte + barba', precio: 250, duracion: '60 min' },
-    { id: 3, nombre: 'Afeitado + corte', precio: 200, duracion: '60 min' },
-    { id: 4, nombre: 'Peinado + barba', precio: 180, duracion: '50 min' },
-    { id: 5, nombre: 'Corte degradado', precio: 160, duracion: '45 min' }
-  ];
+    const [barberos, setBarberos] = useState([]);
+    const [servicios, setServicios] = useState([]);
+    const [preferidos, setPreferidos] = useState([]);
+    const [cargando, setCargando] = useState(true);
 
-  const hoy = new Date();
-  const diasOpciones = [0, 1, 2, 3].map(offset => {
-    const d = new Date();
-    d.setDate(hoy.getDate() + offset);
-    const nombresDias = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
-    const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const isoFecha = d.toISOString().split('T')[0];
-    return {
-      label: offset === 0 ? 'HOY' : nombresDias[d.getDay()],
-      numero: d.getDate(),
-      mes: nombresMeses[d.getMonth()],
-      fechaIso: isoFecha
-    };
-  });
+    const [nombreCliente, setNombreCliente] = useState(usuarioSesion.nombreCompleto || usuarioSesion.nombre || '');
+    const [telefonoCliente, setTelefonoCliente] = useState(usuarioSesion.telefono || '');
+    const [sucursalElegida, setSucursalElegida] = useState('Matriz Centro');
+    const [idBarberoElegido, setIdBarberoElegido] = useState('');
+    const [guardarPreferido, setGuardarPreferido] = useState(false);
+    const [servicioSeleccionado, setServicioSeleccionado] = useState(null);
 
-  const horariosManana = ['09:00', '09:45', '10:30', '11:15'];
-  const horariosTarde = ['14:00', '15:30', '17:00', '18:30'];
+    const diasRapidos = useMemo(() => {
+        const nombresDias = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+        const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        return Array.from({ length: 4 }, (_, i) => {
+            const f = new Date();
+            f.setDate(f.getDate() + i);
+            return {
+                label: i === 0 ? 'HOY' : nombresDias[f.getDay()],
+                diaNum: String(f.getDate()).padStart(2, '0'),
+                mes: nombresMeses[f.getMonth()],
+                valorIso: fechaLocalISO(f),
+            };
+        });
+    }, []);
 
-  const [barberos, setBarberos] = useState([]);
-  const [idBarberoSeleccionado, setIdBarberoSeleccionado] = useState('');
-  const [servicioSeleccionado, setServicioSeleccionado] = useState(serviciosCatalogo[0]);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(diasOpciones[0].fechaIso);
-  const [horaSeleccionada, setHoraSeleccionada] = useState('14:00');
-  const [telefono, setTelefono] = useState(usuario?.telefono || '+52 231 112 6081');
-  const [notas, setNotas] = useState('');
-  const [cargando, setCargando] = useState(false);
+    const [fechaSeleccionada, setFechaSeleccionada] = useState(diasRapidos[0].valorIso);
+    const [horaSeleccionada, setHoraSeleccionada] = useState('18:30');
+    const [ocupadas, setOcupadas] = useState([]);
+    const [notas, setNotas] = useState('');
+    const [enviando, setEnviando] = useState(false);
 
-  // Consulta dinámica: Carga todos los barberos registrados en tiempo real
-  useEffect(() => {
-    fetch(`${API_BASE}/barberos`)
-      .then(res => res.json())
-      .then(data => {
-        setBarberos(data);
-        if (data.length > 0) {
-          setIdBarberoSeleccionado(data[0].idBarbero);
+    useEffect(() => {
+        if (!idCliente || usuarioSesion.rol === 'BARBERO') {
+            navigate('/login');
+            return;
         }
-      })
-      .catch(err => console.error('Error al obtener barberos:', err));
-  }, []);
+        const cargarCatalogos = async () => {
+            setCargando(true);
+            try {
+                const [rb, rs, rp] = await Promise.allSettled([
+                    fetch(`${API_URL}/barbero`),
+                    fetch(`${API_URL}/api/servicios`),
+                    fetch(`${API_URL}/cliente-barbero`),
+                ]);
+                if (rb.status === 'fulfilled' && rb.value.ok) setBarberos(await rb.value.json());
+                if (rs.status === 'fulfilled' && rs.value.ok) {
+                    const data = await rs.value.json();
+                    setServicios(data);
+                    if (data.length > 0) setServicioSeleccionado(data[0]);
+                }
+                if (rp.status === 'fulfilled' && rp.value.ok) {
+                    const data = await rp.value.json();
+                    setPreferidos(
+                        data
+                            .filter((x) => x.cliente?.idCliente === Number(idCliente) && x.estatus !== false && x.barbero)
+                            .map((x) => String(x.barbero.idBarbero))
+                    );
+                }
+            } catch (err) {
+                console.log('No se pudieron cargar los catálogos de reserva.');
+            } finally {
+                setCargando(false);
+            }
+        };
+        cargarCatalogos();
+    }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!idBarberoSeleccionado) {
-      alert('Por favor selecciona un barbero.');
-      return;
-    }
-    setCargando(true);
+    const enSucursal = (b) => b.sucursal === sucursalElegida || (!b.sucursal && sucursalElegida === 'Matriz Centro');
+    const barberosDisponibles = barberos
+        .filter(enSucursal)
+        .sort((a, b) => Number(preferidos.includes(idDe(b))) - Number(preferidos.includes(idDe(a))));
 
-    const horaNormalizada = horaSeleccionada.length === 5 ? `${horaSeleccionada}:00` : horaSeleccionada;
+    useEffect(() => {
+        const lista = barberos
+            .filter(enSucursal)
+            .sort((a, b) => Number(preferidos.includes(idDe(b))) - Number(preferidos.includes(idDe(a))));
+        setIdBarberoElegido(lista.length > 0 ? idDe(lista[0]) : '');
+        setGuardarPreferido(false);
+    }, [sucursalElegida, barberos, preferidos]);
 
-    const bodyTurno = {
-      idCliente: Number(usuario?.id_usuario || 1),
-      idBarbero: Number(idBarberoSeleccionado),
-      idServicio: Number(servicioSeleccionado.id || 1),
-      fecha: fechaSeleccionada,
-      horaInicio: horaNormalizada,
-      notasCliente: servicioSeleccionado.nombre + (notas ? ` - ${notas}` : ''),
-      sucursal: 'BarberApp Centro',
-      estado: 'CONFIRMADO'
+    useEffect(() => {
+        if (!idBarberoElegido) {
+            setOcupadas([]);
+            return;
+        }
+        let cancelado = false;
+        fetch(`${API_URL}/api/turnos/ocupados?idBarbero=${idBarberoElegido}&fecha=${fechaSeleccionada}`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((d) => { if (!cancelado) setOcupadas(Array.isArray(d) ? d : []); })
+            .catch(() => { if (!cancelado) setOcupadas([]); });
+        return () => { cancelado = true; };
+    }, [idBarberoElegido, fechaSeleccionada]);
+
+    const ahora = new Date();
+    const hoyISO = fechaLocalISO(ahora);
+    const horaActual = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+    const horaNoDisponible = (h) => ocupadas.includes(h) || (fechaSeleccionada === hoyISO && h <= horaActual);
+
+    useEffect(() => {
+        if (horaSeleccionada && !horaNoDisponible(horaSeleccionada)) return;
+        const libre = [...HORAS_MANANA, ...HORAS_TARDE].find((h) => !horaNoDisponible(h));
+        setHoraSeleccionada(libre || '');
+    }, [ocupadas, fechaSeleccionada]);
+
+    const handleAgendarTurno = async (e) => {
+        e.preventDefault();
+        if (!servicioSeleccionado) {
+            alert('Por favor selecciona un servicio.');
+            return;
+        }
+        if (!idBarberoElegido) {
+            alert('No hay barberos disponibles en esta sucursal.');
+            return;
+        }
+        if (!horaSeleccionada) {
+            alert('No hay horarios disponibles ese día. Elige otra fecha.');
+            return;
+        }
+
+        setEnviando(true);
+        const nuevoTurno = {
+            fecha: fechaSeleccionada,
+            horaInicio: `${horaSeleccionada}:00`,
+            estado: 'PENDIENTE',
+            sucursal: sucursalElegida,
+            notasCliente: notas || 'Sin notas especiales',
+            cliente: { idCliente: Number(idCliente) },
+            barbero: { idBarbero: Number(idBarberoElegido) },
+            servicio: { idServicio: Number(servicioSeleccionado.idServicio) },
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/api/turnos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevoTurno),
+            });
+            if (res.ok) {
+                if (guardarPreferido) {
+                    try {
+                        await fetch(`${API_URL}/cliente-barbero`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                cliente: { idCliente: Number(idCliente) },
+                                barbero: { idBarbero: Number(idBarberoElegido) },
+                                estatus: true,
+                            }),
+                        });
+                    } catch (_) {  }
+                }
+                alert('¡Cita solicitada! Tu turno quedó en estado PENDIENTE hasta que el barbero lo confirme.');
+                navigate('/cliente');
+            } else {
+                alert(await leerError(res, 'No se pudo agendar la cita.'));
+            }
+        } catch (error) {
+            console.error('Error de conexión:', error);
+            alert('Error al conectar con la API.');
+        } finally {
+            setEnviando(false);
+        }
     };
 
-    try {
-      const res = await fetch(`${API_BASE}/turnos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyTurno)
-      });
-
-      if (res.ok) {
-        alert('¡Turno confirmado y asignado al barbero exitosamente!');
-        navigate('/cliente');
-      } else {
-        const errorText = await res.text();
-        console.error('Error del servidor:', errorText);
-        alert('Error en el servidor al registrar el turno: ' + errorText);
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error de conexión con el backend.');
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-[#111613] text-gray-200 p-6 md:p-10 font-sans relative overflow-hidden select-none">
-      
-      {/* Círculos sólidos de fondo Figma */}
-      <div className="absolute -top-44 -right-32 w-[550px] h-[550px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
-      <div className="absolute -bottom-48 -left-32 w-[480px] h-[480px] bg-[#18221b] rounded-full pointer-events-none z-0"></div>
-
-      <header className="flex justify-between items-center mb-8 max-w-6xl mx-auto relative z-10">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/cliente')}>
-          <div className="w-12 h-12 bg-[#213026] border border-[#2d4034] rounded-2xl flex items-center justify-center shadow-lg shadow-black/30">
-            <span className="text-2xl filter drop-shadow">🦝</span>
-          </div>
-          <div>
-            <span className="text-[10px] font-black tracking-widest text-[#d97706] uppercase block">
-              El Mapache Bigotón
-            </span>
-            <span className="text-xl font-extrabold text-white tracking-wide">
-              BarberApp
-            </span>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => navigate('/cliente')} 
-          className="flex items-center gap-1.5 text-xs text-[#d97706] hover:underline"
-        >
-          <ArrowLeft size={14} /> Volver al panel
-        </button>
-      </header>
-
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
-        
-        {/* Columna Izquierda */}
-        <div className="lg:col-span-7 bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 shadow-2xl space-y-6 backdrop-blur-md">
-          <div>
-            <span className="text-[10px] font-black uppercase text-[#d97706] tracking-wider block mb-1">
-              Nuevo Turno
-            </span>
-            <h2 className="text-2xl font-black text-white">Agendar tu cita</h2>
-            <p className="text-xs text-gray-400 mt-1">
-              Ingresa tus datos, elige con qué barbero deseas atenderte y selecciona fecha y hora.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">Nombre completo</label>
-              <div className="relative">
-                <User size={15} className="absolute left-3.5 top-3 text-gray-500" />
-                <input 
-                  type="text" 
-                  disabled
-                  value={usuario?.nombre_completo || 'wicho'} 
-                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-200 capitalize outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Selector de barbero: Renderiza TODOS los que existan en la BD */}
-            <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">Seleccionar Barbero</label>
-              <div className="relative">
-                <UserCheck size={15} className="absolute left-3.5 top-3 text-[#ea8536]" />
-                <select
-                  value={idBarberoSeleccionado}
-                  onChange={(e) => setIdBarberoSeleccionado(e.target.value)}
-                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-[#ea8536] outline-none capitalize"
-                >
-                  {barberos.length === 0 ? (
-                    <option value="">Cargando barberos disponibles...</option>
-                  ) : (
-                    barberos.map(b => (
-                      <option key={b.idBarbero} value={b.idBarbero}>
-                        {b.nombreCompleto} — ({b.tituloRol || 'Barbero'} • {b.experiencia || 1} años exp.)
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-300 mb-1.5">Número de teléfono</label>
-              <div className="relative">
-                <Phone size={15} className="absolute left-3.5 top-3 text-gray-500" />
-                <input 
-                  type="text" 
-                  value={telefono} 
-                  onChange={(e) => setTelefono(e.target.value)}
-                  className="w-full bg-[#121914] border border-[#243328] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white outline-none focus:border-[#ea8536]"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-300 mb-2">Selección de fecha</label>
-            <div className="grid grid-cols-4 gap-2.5">
-              {diasOpciones.map((dia) => {
-                const seleccionada = fechaSeleccionada === dia.fechaIso;
-                return (
-                  <button
-                    key={dia.fechaIso}
-                    type="button"
-                    onClick={() => setFechaSeleccionada(dia.fechaIso)}
-                    className={`py-3 px-2 rounded-2xl border text-center transition ${
-                      seleccionada
-                        ? 'border-[#ea8536] bg-[#222e25] text-white'
-                        : 'border-[#243328] bg-[#121914] text-gray-400 hover:border-gray-600'
-                    }`}
-                  >
-                    <span className="text-[10px] font-bold block text-gray-400 uppercase">{dia.label}</span>
-                    <span className="text-lg font-black block my-0.5">{dia.numero}</span>
-                    <span className="text-[10px] text-gray-500 block">{dia.mes}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider block mb-2">Mañana</span>
-              <div className="grid grid-cols-4 gap-2">
-                {horariosManana.map(h => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => setHoraSeleccionada(h)}
-                    className={`py-2 rounded-xl text-xs font-bold border transition ${
-                      horaSeleccionada === h 
-                        ? 'bg-[#ea8536] text-[#121814] border-[#ea8536]' 
-                        : 'bg-[#121914] text-gray-300 border-[#243328] hover:border-gray-600'
-                    }`}
-                  >
-                    {h}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider block mb-2">Tarde</span>
-              <div className="grid grid-cols-4 gap-2">
-                {horariosTarde.map(h => (
-                  <button
-                    key={h}
-                    type="button"
-                    onClick={() => setHoraSeleccionada(h)}
-                    className={`py-2 rounded-xl text-xs font-bold border transition ${
-                      horaSeleccionada === h 
-                        ? 'bg-[#ea8536] text-[#121814] border-[#ea8536]' 
-                        : 'bg-[#121914] text-gray-300 border-[#243328] hover:border-gray-600'
-                    }`}
-                  >
-                    {h}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-300 mb-1.5">Detalles adicionales o notas especiales</label>
-            <input 
-              type="text" 
-              placeholder="Ej. Preferencia por navaja tradicional, detalles sobre barba, etc." 
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              className="w-full bg-[#121914] border border-[#243328] rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-600 outline-none focus:border-[#ea8536]"
-            />
-          </div>
-        </div>
-
-        {/* Columna Derecha */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-[#18211b]/95 border border-[#25332a] rounded-3xl p-7 shadow-2xl backdrop-blur-md">
-            <h3 className="font-bold text-base text-white">Elige el servicio</h3>
-            <p className="text-xs text-gray-400 mt-1 mb-5">
-              Todos nuestros servicios incluyen lavado de cabello y bebida de cortesía.
-            </p>
-
-            <div className="space-y-3">
-              {serviciosCatalogo.map((serv) => {
-                const activo = servicioSeleccionado.id === serv.id;
-                return (
-                  <div
-                    key={serv.id}
-                    onClick={() => setServicioSeleccionado(serv)}
-                    className={`p-4 rounded-2xl border cursor-pointer flex justify-between items-center transition ${
-                      activo 
-                        ? 'border-[#ea8536] bg-[#222e25]' 
-                        : 'border-[#243328] bg-[#121914] hover:border-gray-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                        activo ? 'border-[#ea8536] bg-[#ea8536]' : 'border-gray-600'
-                      }`}>
-                        {activo && <div className="w-1.5 h-1.5 bg-black rounded-full" />}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-white">{serv.nombre}</h4>
-                        <span className="text-[10px] text-gray-400">{serv.duracion}</span>
-                      </div>
-                    </div>
-                    <span className="font-black text-sm text-[#ea8536]">${serv.precio}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="bg-[#141b16] border border-[#25332a] p-4 rounded-2xl mt-5">
-              <span className="text-xs font-bold text-[#ea8536] flex items-center gap-1.5 mb-1">
-                <Scissors size={14} /> Atención personalizada
-              </span>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                Tu barbero seleccionado preparará su estación para recibirte puntualmente.
-              </p>
-            </div>
-
+    const botonHora = (h) => {
+        const isSelected = horaSeleccionada === h;
+        const bloqueada = horaNoDisponible(h);
+        return (
             <button
-              onClick={handleSubmit}
-              disabled={cargando}
-              className="w-full mt-6 bg-[#ea8536] hover:bg-[#d97528] text-[#121814] font-black py-3 rounded-xl text-xs transition duration-200 shadow-xl"
+                key={h}
+                type="button"
+                disabled={bloqueada}
+                onClick={() => setHoraSeleccionada(h)}
+                className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                    bloqueada
+                        ? 'bg-[#111713] border-[#2D3E31] text-gray-600 line-through cursor-not-allowed opacity-50'
+                        : isSelected
+                            ? 'bg-[#E08A3E] text-[#111713] border-[#E08A3E] cursor-pointer'
+                            : 'bg-[#111713] border-[#2D3E31] text-gray-300 hover:border-gray-500 cursor-pointer'
+                }`}
             >
-              {cargando ? 'Registrando cita...' : 'Confirmar Reserva'}
+                {h}
             </button>
-          </div>
+        );
+    };
+
+    return (
+        <div className="relative min-h-screen w-full bg-[#111713] text-white font-sans p-4 sm:p-8 overflow-x-hidden flex flex-col justify-between">
+            <div className="absolute top-[-150px] right-[-150px] w-[600px] h-[600px] bg-[#1A251D] rounded-full opacity-40 pointer-events-none" />
+
+            <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
+                <header className="flex items-center justify-between mb-6 pb-2 border-b border-[#2D3E31]/40">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/cliente')}
+                            className="w-10 h-10 bg-[#1A251D] border border-[#2D3E31] rounded-xl flex items-center justify-center hover:bg-[#25352a] text-gray-300 transition-colors cursor-pointer"
+                        >
+                            <ArrowLeft size={18} />
+                        </button>
+                        <div className="w-11 h-11 bg-[#1A251D] border border-[#2D3E31] rounded-2xl flex items-center justify-center p-2 shadow-inner">
+                            <img src="/racoon_1.png" alt="El Mapache Bigotón" className="w-full h-full object-contain" />
+                        </div>
+                        <div>
+              <span className="block text-[10px] tracking-widest text-[#E08A3E] font-bold uppercase">
+                El Mapache Bigotón
+              </span>
+                            <h1 className="text-xl font-extrabold tracking-tight text-white leading-none">BarberApp</h1>
+                        </div>
+                    </div>
+                </header>
+
+                <form onSubmit={handleAgendarTurno} className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+                    <div className="lg:col-span-7 bg-[#1A251D] border border-[#2D3E31] p-6 sm:p-8 rounded-3xl flex flex-col justify-between shadow-2xl">
+                        <div className="space-y-5">
+                            <div>
+                <span className="text-[10px] font-extrabold text-[#E08A3E] tracking-widest uppercase block mb-1">
+                  NUEVO TURNO
+                </span>
+                                <h2 className="text-3xl font-black text-white tracking-tight">Agendar tu cita</h2>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Ingresa tus datos, elige la sucursal y selecciona a tu barbero.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Nombre completo</label>
+                                <div className="relative flex items-center">
+                                    <User className="absolute left-4 text-gray-400" size={16} />
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ej. Mateo Ruiz"
+                                        value={nombreCliente}
+                                        onChange={(e) => setNombreCliente(e.target.value)}
+                                        className="w-full py-3 pl-11 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-2xl focus:outline-none focus:border-[#E08A3E] text-xs font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Número de teléfono</label>
+                                <div className="relative flex items-center">
+                                    <Phone className="absolute left-4 text-gray-400" size={16} />
+                                    <input
+                                        type="tel"
+                                        required
+                                        placeholder="Ej. +52 231 000 0000"
+                                        value={telefonoCliente}
+                                        onChange={(e) => setTelefonoCliente(e.target.value)}
+                                        className="w-full py-3 pl-11 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-2xl focus:outline-none focus:border-[#E08A3E] text-xs font-medium"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Sucursal</label>
+                                <div className="relative flex items-center">
+                                    <MapPin className="absolute left-4 text-gray-400" size={16} />
+                                    <select
+                                        value={sucursalElegida}
+                                        onChange={(e) => setSucursalElegida(e.target.value)}
+                                        className="w-full py-3 pl-11 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-2xl focus:outline-none focus:border-[#E08A3E] text-xs font-medium appearance-none cursor-pointer"
+                                    >
+                                        <option value="Matriz Centro">Matriz Centro</option>
+                                        <option value="Sucursal Norte">Sucursal Norte</option>
+                                        <option value="Sucursal Sur">Sucursal Sur</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-300 mb-1.5">Barbero de preferencia</label>
+                                <div className="relative flex items-center">
+                                    <UserCheck className="absolute left-4 text-gray-400" size={16} />
+                                    <select
+                                        value={idBarberoElegido}
+                                        onChange={(e) => { setIdBarberoElegido(e.target.value); setGuardarPreferido(false); }}
+                                        className="w-full py-3 pl-11 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-2xl focus:outline-none focus:border-[#E08A3E] text-xs font-medium appearance-none cursor-pointer"
+                                        disabled={barberosDisponibles.length === 0}
+                                    >
+                                        {barberosDisponibles.length > 0 ? (
+                                            barberosDisponibles.map((b) => (
+                                                <option key={idDe(b)} value={idDe(b)}>
+                                                    {preferidos.includes(idDe(b)) ? '★ ' : ''}
+                                                    {b.nombreCompleto || b.nombre} {b.tituloRol ? `(${b.tituloRol})` : ''}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option value="">No hay barberos asignados en esta sucursal</option>
+                                        )}
+                                    </select>
+                                </div>
+                                {idBarberoElegido && !preferidos.includes(idBarberoElegido) && (
+                                    <label className="flex items-center gap-2 mt-2 px-1 text-[11px] text-gray-400 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={guardarPreferido}
+                                            onChange={(e) => setGuardarPreferido(e.target.checked)}
+                                            className="accent-[#E08A3E] cursor-pointer"
+                                        />
+                                        Guardar como mi barbero de preferencia
+                                    </label>
+                                )}
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                                <label className="block text-xs font-semibold text-gray-300">Selección de fecha y hora</label>
+                                <div className="grid grid-cols-4 gap-2.5">
+                                    {diasRapidos.map((d) => {
+                                        const isSelected = fechaSeleccionada === d.valorIso;
+                                        return (
+                                            <button
+                                                key={d.valorIso}
+                                                type="button"
+                                                onClick={() => setFechaSeleccionada(d.valorIso)}
+                                                className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+                                                    isSelected
+                                                        ? 'bg-[#111713] border-[#E08A3E] text-white'
+                                                        : 'bg-[#111713] border-[#2D3E31] text-gray-400 hover:border-gray-500'
+                                                }`}
+                                            >
+                                                <span className="block text-[10px] font-bold tracking-wider">{d.label}</span>
+                                                <span className="block text-lg font-black leading-none my-0.5">{d.diaNum}</span>
+                                                <span className="block text-[9px] text-gray-500">{d.mes}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div>
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">MAÑANA</span>
+                                    <div className="grid grid-cols-4 gap-2.5">{HORAS_MANANA.map(botonHora)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">TARDE</span>
+                                    <div className="grid grid-cols-4 gap-2.5">{HORAS_TARDE.map(botonHora)}</div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                                    Detalles adicionales o notas especiales
+                                </label>
+                                <div className="relative flex items-center">
+                                    <FileText className="absolute left-4 text-gray-400" size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="Ej. Preferencia por navaja tradicional..."
+                                        value={notas}
+                                        onChange={(e) => setNotas(e.target.value)}
+                                        className="w-full py-3 pl-11 pr-4 bg-[#111713] border border-[#2D3E31] text-white rounded-2xl focus:outline-none focus:border-[#E08A3E] text-xs font-medium"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={enviando || cargando}
+                            className="w-full mt-6 py-4 bg-[#E08A3E] hover:bg-[#c9762e] disabled:bg-gray-600 text-[#111713] font-black rounded-2xl transition-all shadow-xl cursor-pointer text-sm flex items-center justify-center gap-2"
+                        >
+                            {enviando ? 'Procesando cita...' : 'Confirmar y Solicitar Cita'}
+                        </button>
+                    </div>
+
+                    <div className="lg:col-span-5 bg-[#1A251D] border border-[#2D3E31] p-6 sm:p-8 rounded-3xl flex flex-col justify-between shadow-2xl">
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-white tracking-tight">Elige el servicio</h3>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Todos nuestros servicios incluyen lavado de cabello y bebida de cortesía.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                {servicios.length === 0 && !cargando && (
+                                    <p className="text-xs text-gray-500">No hay servicios disponibles por el momento.</p>
+                                )}
+                                {servicios.map((s) => {
+                                    const isSelected = servicioSeleccionado?.idServicio === s.idServicio;
+                                    return (
+                                        <div
+                                            key={s.idServicio}
+                                            onClick={() => setServicioSeleccionado(s)}
+                                            className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                                                isSelected
+                                                    ? 'bg-[#111713] border-[#E08A3E] shadow-lg'
+                                                    : 'bg-[#111713] border-[#2D3E31] hover:border-gray-500'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                                                        isSelected ? 'border-[#E08A3E] bg-[#E08A3E] text-[#111713]' : 'border-gray-500'
+                                                    }`}
+                                                >
+                                                    {isSelected && <Check size={12} strokeWidth={3} />}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-white">{s.nombreServicio}</h4>
+                                                    <span className="text-[10px] text-gray-500">{s.duracion} min</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm font-black text-white">${s.precio}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="mt-6 p-4 bg-[#111713] border border-[#2D3E31] rounded-2xl flex items-start gap-3">
+                            <Scissors size={18} className="text-[#E08A3E] flex-shrink-0 mt-0.5" />
+                            <div>
+                                <h5 className="text-xs font-bold text-gray-300">Atención personalizada</h5>
+                                <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">
+                                    Si tienes dudas sobre qué corte elegir, tu barbero te guiará al inicio del turno según tus rasgos y
+                                    objetivos de estilo.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <footer className="relative z-10 p-4 text-center text-xs text-gray-600 mt-6">
+                El Mapache Bigotón &copy; BarberApp
+            </footer>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
