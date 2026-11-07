@@ -13,18 +13,19 @@ import lombok.*;
 public class ClienteBarbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idCB")
     private Long idCB;
 
     @NotNull
     @Column(name = "estatus")
     private Boolean estatus = true;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idCliente")
     @JsonIgnoreProperties({"foto", "turnos", "clientesBarberos"})
     private Cliente cliente;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idBarbero")
     @JsonIgnoreProperties({"foto", "turnos", "disponibilidades", "clientesBarberos", "sucursal"})
     private Barbero barbero;

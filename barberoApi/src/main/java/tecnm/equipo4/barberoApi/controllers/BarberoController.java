@@ -5,9 +5,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import tecnm.equipo4.barberoApi.models.Barbero;
+import tecnm.equipo4.barberoApi.models.Sucursal;
 import tecnm.equipo4.barberoApi.repositories.BarberoRepository;
+import tecnm.equipo4.barberoApi.repositories.SucursalRepository;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -16,6 +19,7 @@ import java.util.Optional;
 @RequestMapping("/barbero")
 public class BarberoController {
     private final BarberoRepository barberoRepository;
+    private final SucursalRepository sucursalRepository; // Añadido para validar la sucursal
 
     @GetMapping
     public ResponseEntity<Iterable<Barbero>> findAll() {
@@ -30,12 +34,40 @@ public class BarberoController {
     }
 
     @PostMapping
-    public ResponseEntity<Barbero> create(@RequestBody Barbero newBarbero, UriComponentsBuilder ucb) {
-        Barbero savedBarbero = barberoRepository.save(newBarbero);
-        URI uri = ucb.path("/barbero/{idBarbero}")
-                .buildAndExpand(savedBarbero.getIdBarbero())
-                .toUri();
-        return ResponseEntity.created(uri).body(savedBarbero);
+    public ResponseEntity<?> create(@RequestBody Map<String, Object> payload, UriComponentsBuilder ucb) {
+        try {
+            Barbero newBarbero = new Barbero();
+            newBarbero.setNombreCompleto((String) payload.get("nombreCompleto"));
+            newBarbero.setTelefono((String) payload.get("telefono"));
+            newBarbero.setEmail((String) payload.get("email"));
+            newBarbero.setPassword((String) payload.get("password"));
+            newBarbero.setTipoUsuario((String) payload.get("tipoUsuario"));
+            newBarbero.setTituloRol((String) payload.get("tituloRol"));
+            newBarbero.setExperiencia(Integer.parseInt(payload.get("experiencia").toString()));
+
+            // Vincular Sucursal
+            if (payload.get("sucursal") != null) {
+                Map<String, Object> sucursalMap = (Map<String, Object>) payload.get("sucursal");
+                Long idSucursal = Long.valueOf(sucursalMap.get("idSucursal").toString());
+
+                Optional<Sucursal> sucursalOpt = sucursalRepository.findById(idSucursal);
+                if(sucursalOpt.isPresent()){
+                    newBarbero.setSucursal(sucursalOpt.get());
+                } else {
+                    return ResponseEntity.badRequest().body("La sucursal seleccionada no existe en la base de datos.");
+                }
+            } else {
+                return ResponseEntity.badRequest().body("Es obligatorio asignar una sucursal al barbero.");
+            }
+
+            Barbero savedBarbero = barberoRepository.save(newBarbero);
+            URI uri = ucb.path("/barbero/{idBarbero}")
+                    .buildAndExpand(savedBarbero.getIdBarbero())
+                    .toUri();
+            return ResponseEntity.created(uri).body(savedBarbero);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error de validación: " + e.getMessage());
+        }
     }
 
     @PutMapping("/{idBarbero}")

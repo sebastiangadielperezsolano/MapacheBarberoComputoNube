@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 public class Pago {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_pago")
+    @Column(name = "idPago")
     private Long idPago;
 
     @NotNull
@@ -35,7 +35,7 @@ public class Pago {
     private String ultimosDigitos;
 
     @OneToOne
-    @JoinColumn(name = "id_turno")
+    @JoinColumn(name = "idTurno")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Turno turno;
 }

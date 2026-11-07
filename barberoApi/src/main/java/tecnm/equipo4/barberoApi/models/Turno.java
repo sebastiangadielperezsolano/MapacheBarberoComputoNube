@@ -28,21 +28,21 @@ public class Turno {
     private String notasCliente;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_sucursal")
+    @JoinColumn(name = "idSucursal")
     @JsonIgnoreProperties({"barberos", "hibernateLazyInitializer", "handler"})
     private Sucursal sucursal;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idCliente")
     @JsonIgnoreProperties({"foto", "turnos", "clientesBarberos"})
     private Cliente cliente;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idBarbero")
     @JsonIgnoreProperties({"foto", "turnos", "disponibilidades", "clientesBarberos", "sucursal"})
     private Barbero barbero;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "idServicio")
     @JsonIgnoreProperties({"turnos"})
     private Servicio servicio;

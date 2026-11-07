@@ -16,6 +16,7 @@ import java.util.List;
 public class Barbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idBarbero")
     private Long idBarbero;
 
     @NotBlank
@@ -57,7 +58,7 @@ public class Barbero {
     private byte[] foto;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_sucursal")
+    @JoinColumn(name = "idSucursal")
     @JsonIgnoreProperties({"barberos", "hibernateLazyInitializer", "handler"})
     private Sucursal sucursal;
 

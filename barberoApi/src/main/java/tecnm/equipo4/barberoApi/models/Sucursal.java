@@ -1,6 +1,8 @@
 package tecnm.equipo4.barberoApi.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.ArrayList;
@@ -14,16 +16,21 @@ import java.util.List;
 public class Sucursal {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_sucursal")
+    @Column(name = "idSucursal")
     private Long idSucursal;
 
-    @Column(name = "nombre_sucursal", nullable = false)
+    @Column(name = "nombreSucursal", nullable = false)
     private String nombreSucursal;
 
-    @Column(name = "direccion_sucursal")
+    @Column(name = "direccionSucursal")
     private String direccion;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "sucursal", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "sucursal", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Barbero> barberos = new ArrayList<>();
+
+    @JsonCreator
+    public Sucursal(@JsonProperty("idSucursal") Long idSucursal) {
+        this.idSucursal = idSucursal;
+    }
 }

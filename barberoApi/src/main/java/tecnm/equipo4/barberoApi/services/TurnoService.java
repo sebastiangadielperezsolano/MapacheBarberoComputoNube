@@ -12,7 +12,6 @@ import tecnm.equipo4.barberoApi.repositories.ClienteRepository;
 import tecnm.equipo4.barberoApi.repositories.ServicioRepository;
 import tecnm.equipo4.barberoApi.repositories.SucursalRepository;
 import tecnm.equipo4.barberoApi.repositories.TurnoRepository;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -58,32 +57,40 @@ public class TurnoService {
     }
 
     public Turno agendar(Turno turno) {
-        Long idClienteVal = (turno.getCliente() != null) ? turno.getCliente().getIdCliente() : null;
-        if (idClienteVal != null) {
+        if (turno.getCliente() != null && turno.getCliente().getIdCliente() != null) {
+            Long idClienteVal = turno.getCliente().getIdCliente();
             Cliente clienteReal = clienteRepository.findById(idClienteVal)
                     .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + idClienteVal));
             turno.setCliente(clienteReal);
+        } else {
+            throw new RuntimeException("El cliente es obligatorio para agendar un turno.");
         }
 
-        Long idBarberoVal = (turno.getBarbero() != null) ? turno.getBarbero().getIdBarbero() : null;
-        if (idBarberoVal != null) {
+        if (turno.getBarbero() != null && turno.getBarbero().getIdBarbero() != null) {
+            Long idBarberoVal = turno.getBarbero().getIdBarbero();
             Barbero barberoReal = barberoRepository.findById(idBarberoVal)
                     .orElseThrow(() -> new RuntimeException("Barbero no encontrado con ID: " + idBarberoVal));
             turno.setBarbero(barberoReal);
+        } else {
+            throw new RuntimeException("El barbero es obligatorio para agendar un turno.");
         }
 
-        Long idServicioVal = (turno.getServicio() != null) ? turno.getServicio().getIdServicio() : null;
-        if (idServicioVal != null) {
+        if (turno.getServicio() != null && turno.getServicio().getIdServicio() != null) {
+            Long idServicioVal = turno.getServicio().getIdServicio();
             Servicio servicioReal = servicioRepository.findById(idServicioVal)
                     .orElseThrow(() -> new RuntimeException("Servicio no encontrado con ID: " + idServicioVal));
             turno.setServicio(servicioReal);
+        } else {
+            throw new RuntimeException("El servicio es obligatorio para agendar un turno.");
         }
 
-        Long idSucursalVal = (turno.getSucursal() != null) ? turno.getSucursal().getIdSucursal() : null;
-        if (idSucursalVal != null) {
+        if (turno.getSucursal() != null && turno.getSucursal().getIdSucursal() != null) {
+            Long idSucursalVal = turno.getSucursal().getIdSucursal();
             Sucursal sucursalReal = sucursalRepository.findById(idSucursalVal)
                     .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con ID: " + idSucursalVal));
             turno.setSucursal(sucursalReal);
+        } else {
+            throw new RuntimeException("La sucursal es obligatoria para agendar un turno.");
         }
 
         return turnoRepository.save(turno);

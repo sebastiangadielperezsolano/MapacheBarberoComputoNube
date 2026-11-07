@@ -15,6 +15,7 @@ import java.time.LocalTime;
 public class DisponibilidadBarbero {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "idDisponibilidad")
     private Long idDisponibilidad;
 
     @NotNull
@@ -32,6 +33,6 @@ public class DisponibilidadBarbero {
 
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "idUsuario")
+    @JoinColumn(name = "idBarbero")
     private Barbero barbero;
 }
